@@ -167,7 +167,7 @@
   .committee-photo svg { width: 50px; height: 50px; opacity: 0.25; }
   .committee-name { font-size: 13px; font-weight: 700; margin-top: 8px; }
   .committee-role { font-size: 12px; color: #1a8f4c; margin-top: 2px; }
-  .creator-line { font-size: 17px; font-weight: 800; color: #fff; margin-top: 10px; text-align: center; letter-spacing: .3px; text-shadow: 0 1px 6px rgba(0,0,0,.35); } .creator-line::first-line { font-weight: 900; }
+  .creator-line { font-size: 17px; font-weight: 800; color: #222; margin-top: 10px; text-align: center; letter-spacing: .3px; text-shadow: 0 1px 6px rgba(0,0,0,.35); } .creator-line::first-line { font-weight: 900; }
   .admin-edit { background: #eaf2fb; color: #2f6fed; }
   .section-note { font-size: 12px; color: #999; margin: -6px 16px 12px; }
   .logo-current { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; background: #eef2ee; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
@@ -511,7 +511,7 @@ const db = getFirestore(app);
 
 // Admin login email used behind the scenes — the admin only types a password in the UI.
 // This MUST match the email you used when creating the admin user in Firebase Authentication.
-const ADMIN_EMAIL = "admin@pirganjfa.com";
+const ADMIN_EMAIL = "mdrifatfarage01@gmail.com";
 
 const shieldSVG = `<svg viewBox="0 0 64 64" width="100%" height="100%">
   <path d="M32 4 L54 12 V30 C54 46 44 56 32 60 C20 56 10 46 10 30 V12 Z" fill="#eafbf1" stroke="#1a8f4c" stroke-width="2"/>
@@ -553,7 +553,7 @@ function renderContact() {
 }
 function renderCreatorLine() {
   const phone = siteSettings.creatorPhone ? ` • ${siteSettings.creatorPhone}` : '';
-  document.getElementById('creatorLine').textContent = `ওয়েব ক্রিয়েটর: ${siteSettings.creatorName}${phone}`;
+  document.getElementById('creatorLine').innerHTML = `ওয়েব ক্রিয়েটর: <span class="creator-name">${siteSettings.creatorName}</span>${phone}`;
 }
 function renderCommittee() {
   const wrap = document.getElementById('committeeGrid');
