@@ -453,32 +453,46 @@ async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
   const font = '29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
   const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
 
-  // Page 1 — exact positions matched to the printed form.
+  // Page 1 — text sits just ABOVE each dotted line and starts at the first usable dot.
+  // Coordinates are in the 1448x2048 source-image space.
   ctx.drawImage(bg1, 0, 0, W, H);
-  drawFittedText(ctx, data.name, 245, 742, 1090, font);
-  drawFittedText(ctx, data.father, 300, 825, 1040, font);
-  drawFittedText(ctx, data.mother, 300, 910, 1040, font);
 
-  drawFittedText(ctx, data.village, 415, 987, 350, fontSmall);
-  drawFittedText(ctx, data.post, 925, 987, 400, fontSmall);
-  drawFittedText(ctx, data.upazila, 350, 1062, 380, fontSmall);
-  drawFittedText(ctx, data.district, 925, 1062, 400, fontSmall);
+  // Name / parents
+  drawFittedText(ctx, data.name, 220, 719, 1115, font);
+  drawFittedText(ctx, data.father, 304, 804, 1040, font);
+  drawFittedText(ctx, data.mother, 314, 888, 1030, font);
 
-  drawFittedText(ctx, data.pvillage, 415, 1145, 350, fontSmall);
-  drawFittedText(ctx, data.ppost, 925, 1145, 400, fontSmall);
-  drawFittedText(ctx, data.pupazila, 350, 1217, 380, fontSmall);
-  drawFittedText(ctx, data.pdistrict, 925, 1217, 400, fontSmall);
+  // Current address
+  drawFittedText(ctx, data.village, 350, 966, 505, fontSmall);
+  drawFittedText(ctx, data.post, 946, 966, 400, fontSmall);
+  drawFittedText(ctx, data.upazila, 345, 1041, 520, fontSmall);
+  drawFittedText(ctx, data.district, 946, 1041, 400, fontSmall);
 
-  drawFittedText(ctx, data.dob, 300, 1305, 345, fontSmall);
-  drawFittedText(ctx, data.occupation, 910, 1305, 420, fontSmall);
-  drawFittedText(ctx, data.school, 375, 1392, 1045, fontSmall);
-  drawFittedText(ctx, data.className, 315, 1469, 515, fontSmall);
-  drawFittedText(ctx, data.religion, 910, 1469, 420, fontSmall);
-  drawFittedText(ctx, posLabel[data.pos] || data.pos, 560, 1557, 800, fontSmall);
-  drawFittedText(ctx, data.nationality, 295, 1641, 365, fontSmall);
-  drawFittedText(ctx, data.phone, 910, 1641, 420, fontSmall);
-  drawFittedText(ctx, data.height, 315, 1725, 505, fontSmall);
-  drawFittedText(ctx, data.blood, 910, 1725, 420, fontSmall);
+  // Permanent address
+  drawFittedText(ctx, data.pvillage, 350, 1124, 505, fontSmall);
+  drawFittedText(ctx, data.ppost, 946, 1124, 400, fontSmall);
+  drawFittedText(ctx, data.pupazila, 345, 1196, 520, fontSmall);
+  drawFittedText(ctx, data.pdistrict, 946, 1196, 400, fontSmall);
+
+  // DOB / occupation
+  drawFittedText(ctx, data.dob, 305, 1284, 315, fontSmall);
+  drawFittedText(ctx, data.occupation, 900, 1284, 440, fontSmall);
+
+  // Education / class / religion
+  drawFittedText(ctx, data.school, 380, 1371, 1045, fontSmall);
+  drawFittedText(ctx, data.className, 180, 1448, 580, fontSmall);
+  drawFittedText(ctx, data.religion, 800, 1448, 540, fontSmall);
+
+  // Playing position
+  drawFittedText(ctx, posLabel[data.pos] || data.pos, 360, 1536, 980, fontSmall);
+
+  // Nationality / mobile
+  drawFittedText(ctx, data.nationality, 300, 1620, 430, fontSmall);
+  drawFittedText(ctx, data.phone, 830, 1620, 510, fontSmall);
+
+  // Height / blood group
+  drawFittedText(ctx, data.height, 280, 1704, 500, fontSmall);
+  drawFittedText(ctx, data.blood, 830, 1704, 510, fontSmall);
 
   if (photoData) {
     const photo = await loadImageForCanvas(photoData);
