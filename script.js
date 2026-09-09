@@ -458,45 +458,48 @@ async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
   // The available width is reduced by the same amount so text remains inside the field.
   ctx.drawImage(bg1, 0, 0, W, H);
 
+  // Keep every value strictly inside the original dotted-line field.
+  // x = first usable point after the label, maxWidth = distance to the
+  // last usable point before the next label / end dot. No percentage shift
+  // is applied so the printed dots/background never get disturbed.
   const place = (text, x, y, maxWidth, f) => {
-    const shift = maxWidth * 0.50;
-    drawFittedText(ctx, text, x + shift, y, Math.max(40, maxWidth - shift), f);
+    drawFittedText(ctx, text, x, y, maxWidth, f);
   };
 
-  // Name / parents
-  place(data.name, 220, 719, 1115, font);
-  place(data.father, 304, 804, 1040, font);
-  place(data.mother, 314, 888, 1030, font);
+  // Name / parents — text sits just above the dots.
+  place(data.name, 216, 719, 1135, font);
+  place(data.father, 304, 804, 1047, font);
+  place(data.mother, 315, 888, 1036, font);
 
-  // Current address
-  place(data.village, 350, 966, 505, fontSmall);
-  place(data.post, 946, 966, 400, fontSmall);
-  place(data.upazila, 345, 1041, 520, fontSmall);
-  place(data.district, 946, 1041, 400, fontSmall);
+  // Current address — each value stays between its own first/last dots.
+  place(data.village, 352, 966, 500, fontSmall);
+  place(data.post, 948, 966, 397, fontSmall);
+  place(data.upazila, 344, 1041, 522, fontSmall);
+  place(data.district, 949, 1041, 396, fontSmall);
 
-  // Permanent address
-  place(data.pvillage, 350, 1124, 505, fontSmall);
-  place(data.ppost, 946, 1124, 400, fontSmall);
-  place(data.pupazila, 345, 1196, 520, fontSmall);
-  place(data.pdistrict, 946, 1196, 400, fontSmall);
+  // Permanent address.
+  place(data.pvillage, 352, 1124, 500, fontSmall);
+  place(data.ppost, 948, 1124, 397, fontSmall);
+  place(data.pupazila, 344, 1196, 522, fontSmall);
+  place(data.pdistrict, 949, 1196, 396, fontSmall);
 
-  // DOB / occupation
-  place(data.dob, 305, 1284, 315, fontSmall);
+  // DOB / occupation.
+  place(data.dob, 306, 1284, 300, fontSmall);
   place(data.occupation, 900, 1284, 440, fontSmall);
 
-  // Education / class / religion
-  place(data.school, 380, 1371, 1045, fontSmall);
-  place(data.className, 180, 1448, 580, fontSmall);
+  // Education / class / religion.
+  place(data.school, 382, 1371, 1040, fontSmall);
+  place(data.className, 180, 1448, 555, fontSmall);
   place(data.religion, 800, 1448, 540, fontSmall);
 
-  // Playing position
+  // Playing position.
   place(posLabel[data.pos] || data.pos, 360, 1536, 980, fontSmall);
 
-  // Nationality / mobile
+  // Nationality / mobile.
   place(data.nationality, 300, 1620, 430, fontSmall);
   place(data.phone, 830, 1620, 510, fontSmall);
 
-  // Height / blood group
+  // Height / blood group.
   place(data.height, 280, 1704, 500, fontSmall);
   place(data.blood, 830, 1704, 510, fontSmall);
 
