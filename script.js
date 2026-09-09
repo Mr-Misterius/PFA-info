@@ -455,34 +455,34 @@ async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
 
   // Page 1 — exact positions matched to the printed form.
   ctx.drawImage(bg1, 0, 0, W, H);
-  drawFittedText(ctx, data.name, 225, 735, 1115, font);
-  drawFittedText(ctx, data.father, 285, 818, 1055, font);
-  drawFittedText(ctx, data.mother, 285, 903, 1055, font);
+  drawFittedText(ctx, data.name, 245, 742, 1090, font);
+  drawFittedText(ctx, data.father, 300, 825, 1040, font);
+  drawFittedText(ctx, data.mother, 300, 910, 1040, font);
 
-  drawFittedText(ctx, data.village, 405, 980, 365, fontSmall);
-  drawFittedText(ctx, data.post, 915, 980, 415, fontSmall);
-  drawFittedText(ctx, data.upazila, 335, 1055, 395, fontSmall);
-  drawFittedText(ctx, data.district, 915, 1055, 415, fontSmall);
+  drawFittedText(ctx, data.village, 415, 987, 350, fontSmall);
+  drawFittedText(ctx, data.post, 925, 987, 400, fontSmall);
+  drawFittedText(ctx, data.upazila, 350, 1062, 380, fontSmall);
+  drawFittedText(ctx, data.district, 925, 1062, 400, fontSmall);
 
-  drawFittedText(ctx, data.pvillage, 405, 1138, 365, fontSmall);
-  drawFittedText(ctx, data.ppost, 915, 1138, 415, fontSmall);
-  drawFittedText(ctx, data.pupazila, 335, 1210, 395, fontSmall);
-  drawFittedText(ctx, data.pdistrict, 915, 1210, 415, fontSmall);
+  drawFittedText(ctx, data.pvillage, 415, 1145, 350, fontSmall);
+  drawFittedText(ctx, data.ppost, 925, 1145, 400, fontSmall);
+  drawFittedText(ctx, data.pupazila, 350, 1217, 380, fontSmall);
+  drawFittedText(ctx, data.pdistrict, 925, 1217, 400, fontSmall);
 
-  drawFittedText(ctx, data.dob, 285, 1298, 360, fontSmall);
-  drawFittedText(ctx, data.occupation, 900, 1298, 430, fontSmall);
-  drawFittedText(ctx, data.school, 360, 1385, 1060, fontSmall);
-  drawFittedText(ctx, data.className, 300, 1462, 530, fontSmall);
-  drawFittedText(ctx, data.religion, 900, 1462, 430, fontSmall);
-  drawFittedText(ctx, posLabel[data.pos] || data.pos, 545, 1550, 815, fontSmall);
-  drawFittedText(ctx, data.nationality, 280, 1634, 380, fontSmall);
-  drawFittedText(ctx, data.phone, 900, 1634, 430, fontSmall);
-  drawFittedText(ctx, data.height, 300, 1718, 520, fontSmall);
-  drawFittedText(ctx, data.blood, 900, 1718, 430, fontSmall);
+  drawFittedText(ctx, data.dob, 300, 1305, 345, fontSmall);
+  drawFittedText(ctx, data.occupation, 910, 1305, 420, fontSmall);
+  drawFittedText(ctx, data.school, 375, 1392, 1045, fontSmall);
+  drawFittedText(ctx, data.className, 315, 1469, 515, fontSmall);
+  drawFittedText(ctx, data.religion, 910, 1469, 420, fontSmall);
+  drawFittedText(ctx, posLabel[data.pos] || data.pos, 560, 1557, 800, fontSmall);
+  drawFittedText(ctx, data.nationality, 295, 1641, 365, fontSmall);
+  drawFittedText(ctx, data.phone, 910, 1641, 420, fontSmall);
+  drawFittedText(ctx, data.height, 315, 1725, 505, fontSmall);
+  drawFittedText(ctx, data.blood, 910, 1725, 420, fontSmall);
 
   if (photoData) {
     const photo = await loadImageForCanvas(photoData);
-    const px = 1135, py = 325, pw = 220, ph = 300;
+    const px = 1138, py = 327, pw = 216, ph = 296;
     const scale = Math.min(pw / photo.width, ph / photo.height);
     const dw = photo.width * scale, dh = photo.height * scale;
     ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
