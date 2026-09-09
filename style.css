@@ -267,12 +267,3 @@
 .dark-mode .card,.dark-mode .section,.dark-mode header,.dark-mode .modal,.dark-mode .form-wrap,.dark-mode .sidebar,.dark-mode .result-row{background:var(--card)!important;color:var(--text)!important}
 .dark-mode input,.dark-mode select,.dark-mode textarea{background:#0f1712!important;color:#fff!important;border-color:var(--border)!important}
 .creator-name{color:var(--floodlight-deep, #D9861F)!important;font-size:1.25em;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.12)}
-
-/* Filled admission form download */
-.required-mark{color:#d11;font-weight:800;margin-left:2px}
-.field input[type="date"]{min-height:42px}
-.download-form-btn{font-family:var(--font-display);width:100%;background:linear-gradient(180deg,#2f8f55,#176b3b);color:#fff;border:none;padding:13px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;margin-top:10px;box-shadow:0 3px 0 #0d4d2a,0 6px 12px rgba(11,74,46,.22);transition:transform .12s,box-shadow .12s,opacity .12s}
-.download-form-btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #0d4d2a}
-.download-form-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-.form-download-note{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5}
-.field input:invalid,.field select:invalid{border-color:#e0b0b0}

@@ -56,6 +56,7 @@ let editingCoachId = null;
 let currentFilter = 'all';
 let pendingUnsub = null;
 let isAdmin = false;
+let lastRegistrationData = null;
 
 function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>\"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
@@ -369,220 +370,6 @@ async function getPreviewPhoto(previewId, fallbackUrl = '') {
   }
 }
 
-
-const FORM_REQUIRED_IDS = [
-  'regName','regFather','regMother','regVillage','regPost','regUpazila','regDistrict',
-  'regPVillage','regPPost','regPUpazila','regPDistrict','regDOB','regOccupation',
-  'regSchool','regClass','regReligion','regPos','regNationality','regPhone','regHeight','regBlood'
-];
-
-function getRegistrationFormData() {
-  const value = id => (document.getElementById(id)?.value || '').trim();
-  return {
-    name: value('regName'), father: value('regFather'), mother: value('regMother'),
-    village: value('regVillage'), post: value('regPost'), upazila: value('regUpazila'), district: value('regDistrict'),
-    pvillage: value('regPVillage'), ppost: value('regPPost'), pupazila: value('regPUpazila'), pdistrict: value('regPDistrict'),
-    dob: document.getElementById('regDOB')?.value || '', occupation: value('regOccupation'), school: value('regSchool'),
-    className: value('regClass'), religion: value('regReligion'), pos: document.getElementById('regPos')?.value || '',
-    nationality: value('regNationality'), phone: value('regPhone'), height: value('regHeight'), blood: value('regBlood'),
-    exp: value('regExp'), club: value('regClub')
-  };
-}
-
-function hasRegistrationPhoto() {
-  if (pendingImageFiles['regPhotoPreview']) return true;
-  const img = document.querySelector('#regPhotoPreview img');
-  return !!img;
-}
-
-function updateFormDownloadButton() {
-  const btn = document.getElementById('downloadFilledFormBtn');
-  if (!btn) return;
-  const data = getRegistrationFormData();
-  const complete = FORM_REQUIRED_IDS.every(id => (document.getElementById(id)?.value || '').trim()) && hasRegistrationPhoto();
-  btn.disabled = !complete;
-  const note = document.getElementById('formDownloadNote');
-  if (note) note.textContent = complete
-    ? 'সব তথ্য পূরণ হয়েছে — এখন পূরণকৃত ভর্তি ফরম PDF ডাউনলোড করতে পারবেন।'
-    : 'সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করলে ডাউনলোড বাটনটি চালু হবে।';
-  return complete;
-}
-
-function loadImageForCanvas(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('ফরমের ছবি লোড করা যায়নি।'));
-    img.src = src;
-  });
-}
-
-function drawFittedText(ctx, text, x, y, maxWidth, font = '28px "Hind Siliguri", sans-serif') {
-  if (!text) return;
-  ctx.font = font;
-  ctx.fillStyle = '#111';
-  let value = String(text);
-  while (ctx.measureText(value).width > maxWidth && value.length > 1) value = value.slice(0, -1);
-  ctx.fillText(value, x, y);
-}
-
-async function getRegistrationPhotoDataUrl() {
-  const file = pendingImageFiles['regPhotoPreview'];
-  if (file) return compressImageFile(file);
-  const img = document.querySelector('#regPhotoPreview img');
-  if (!img) throw new Error('ছবি নির্বাচন করুন।');
-  const src = img.src;
-  if (src.startsWith('data:image/')) return src;
-  throw new Error('ছবিটি আবার নির্বাচন করুন।');
-}
-
-async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
-  await document.fonts.ready;
-  const [bg1, bg2] = await Promise.all([
-    loadImageForCanvas('form-page1.jpg'),
-    loadImageForCanvas('form-page2.jpg')
-  ]);
-
-  const W = 1448, H = 2048;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.textBaseline = 'alphabetic';
-
-  const font = '29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-  const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-
-  // Page 1 — text sits just ABOVE each dotted line.
-  // All field start positions are shifted 50% to the RIGHT from the base field start position.
-  // The available width is reduced by the same amount so text remains inside the field.
-  ctx.drawImage(bg1, 0, 0, W, H);
-
-  // Keep every value strictly inside the original dotted-line field.
-  // x = first usable point after the label, maxWidth = distance to the
-  // last usable point before the next label / end dot. No percentage shift
-  // is applied so the printed dots/background never get disturbed.
-  const place = (text, x, y, maxWidth, f) => {
-    drawFittedText(ctx, text, x, y, maxWidth, f);
-  };
-
-  // Name / parents — text sits just above the dots.
-  place(data.name, 216, 719, 1135, font);
-  place(data.father, 304, 804, 1047, font);
-  place(data.mother, 315, 888, 1036, font);
-
-  // Current address — each value stays between its own first/last dots.
-  place(data.village, 352, 966, 500, fontSmall);
-  place(data.post, 948, 966, 397, fontSmall);
-  place(data.upazila, 344, 1041, 522, fontSmall);
-  place(data.district, 949, 1041, 396, fontSmall);
-
-  // Permanent address.
-  place(data.pvillage, 352, 1124, 500, fontSmall);
-  place(data.ppost, 948, 1124, 397, fontSmall);
-  place(data.pupazila, 344, 1196, 522, fontSmall);
-  place(data.pdistrict, 949, 1196, 396, fontSmall);
-
-  // DOB / occupation.
-  place(data.dob, 306, 1284, 300, fontSmall);
-  place(data.occupation, 900, 1284, 440, fontSmall);
-
-  // Education / class / religion.
-  place(data.school, 382, 1371, 1040, fontSmall);
-  place(data.className, 180, 1448, 555, fontSmall);
-  place(data.religion, 800, 1448, 540, fontSmall);
-
-  // Playing position.
-  place(posLabel[data.pos] || data.pos, 360, 1536, 980, fontSmall);
-
-  // Nationality / mobile.
-  place(data.nationality, 300, 1620, 430, fontSmall);
-  place(data.phone, 830, 1620, 510, fontSmall);
-
-  // Height / blood group.
-  place(data.height, 280, 1704, 500, fontSmall);
-  place(data.blood, 830, 1704, 510, fontSmall);
-
-  if (photoData) {
-    const photo = await loadImageForCanvas(photoData);
-    const px = 1138, py = 327, pw = 216, ph = 296;
-    const scale = Math.min(pw / photo.width, ph / photo.height);
-    const dw = photo.width * scale, dh = photo.height * scale;
-    ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
-  }
-
-  const page1Data = canvas.toDataURL('image/jpeg', 0.94);
-  ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(bg2, 0, 0, W, H);
-  const page2Data = canvas.toDataURL('image/jpeg', 0.94);
-
-  const { jsPDF } = window.jspdf || {};
-  if (!jsPDF) throw new Error('PDF লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।');
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-  pdf.addImage(page1Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-  pdf.addPage();
-  pdf.addImage(page2Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-  const safeName = String(filenameName || 'player').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
-  pdf.save(`PFA_ভর্তি_ফরম_${safeName}.pdf`);
-}
-
-async function downloadFilledForm() {
-  if (!updateFormDownloadButton()) {
-    alert('ফরমের সব প্রয়োজনীয় ঘর পূরণ করুন এবং ছবি নির্বাচন করুন।');
-    return;
-  }
-  const btn = document.getElementById('downloadFilledFormBtn');
-  btn.disabled = true;
-  btn.textContent = 'PDF তৈরি হচ্ছে...';
-  try {
-    const data = getRegistrationFormData();
-    const photoData = await getRegistrationPhotoDataUrl();
-    await generateFilledFormPdf(data, photoData, data.name || 'player');
-  } catch (e) {
-    console.error('Filled form PDF error:', e);
-    alert('PDF তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
-  } finally {
-    btn.disabled = !updateFormDownloadButton();
-    btn.textContent = '⬇ পূরণকৃত ভর্তি ফরম PDF ডাউনলোড';
-  }
-}
-
-function playerToFormData(p) {
-  return {
-    name: p.name || '', father: p.father || '', mother: p.mother || '',
-    village: p.village || '', post: p.post || '', upazila: p.upazila || '', district: p.district || '',
-    pvillage: p.pvillage || '', ppost: p.ppost || '', pupazila: p.pupazila || '', pdistrict: p.pdistrict || '',
-    dob: p.dob || '', occupation: p.occupation || '', school: p.school || '',
-    className: p.className || '', religion: p.religion || '', pos: p.pos || '',
-    nationality: p.nationality || '', phone: p.phone || '', height: p.height || '', blood: p.blood || '',
-    exp: p.exp || '', club: p.club || ''
-  };
-}
-
-async function adminDownloadPlayerForm(id) {
-  if (!auth.currentUser || !isAdmin) { alert('Admin Login করুন।'); return; }
-  const p = players.find(player => player.id === id);
-  if (!p) { alert('প্লেয়ারের তথ্য পাওয়া যায়নি।'); return; }
-  try {
-    await generateFilledFormPdf(playerToFormData(p), p.photo || '', p.name || 'player');
-  } catch (e) {
-    console.error('Admin player form PDF error:', e);
-    alert('প্লেয়ারের ভর্তি ফরম তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
-  }
-}
-
-async function adminDownloadPendingForm(id) {
-  if (!auth.currentUser || !isAdmin) { alert('Admin Login করুন।'); return; }
-  const p = pending.find(item => item.id === id);
-  if (!p) { alert('রেজিস্ট্রেশনের তথ্য পাওয়া যায়নি।'); return; }
-  try {
-    await generateFilledFormPdf(playerToFormData(p), p.photo || '', p.name || 'player');
-  } catch (e) {
-    console.error('Admin pending form PDF error:', e);
-    alert('ভর্তি ফরম তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
-  }
-}
-
 function clearPendingImage(previewId) {
   delete pendingImageFiles[previewId];
   const inputMap = {regPhotoPreview:'regPhoto', adminPhotoPreview:'adminPhoto', committeePhotoPreview:'committeePhoto', coachPhotoPreview:'coachPhoto', logoCurrentPreview:'logoUpload', matchLogoPreview:'matchLogo'};
@@ -594,12 +381,9 @@ function clearPendingImage(previewId) {
 async function submitRegistration() {
   const submitBtn = document.querySelector('#view-registration .submit-btn');
   if (submitBtn.disabled) return;
-  if (!updateFormDownloadButton()) {
-    alert('রেজিস্ট্রেশন করার আগে ফরমের সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করুন।');
-    return;
-  }
   const name = document.getElementById('regName').value.trim();
   const phone = document.getElementById('regPhone').value.trim();
+  if (!name || !phone) { alert('নাম ও মোবাইল নম্বর আবশ্যক।'); return; }
   if (name.length > 100 || phone.length > 30) { alert('নাম বা মোবাইল নম্বরের দৈর্ঘ্য সঠিক নয়।'); return; }
   submitBtn.disabled = true; submitBtn.textContent = 'সাবমিট হচ্ছে...';
   try {
@@ -612,36 +396,111 @@ async function submitRegistration() {
       exp: document.getElementById('regExp').value.trim(),
       pos: document.getElementById('regPos').value,
       club: document.getElementById('regClub').value.trim(),
-      village: document.getElementById('regVillage').value.trim(),
-      post: document.getElementById('regPost').value.trim(),
-      upazila: document.getElementById('regUpazila').value.trim(),
-      district: document.getElementById('regDistrict').value.trim(),
-      pvillage: document.getElementById('regPVillage').value.trim(),
-      ppost: document.getElementById('regPPost').value.trim(),
-      pupazila: document.getElementById('regPUpazila').value.trim(),
-      pdistrict: document.getElementById('regPDistrict').value.trim(),
-      occupation: document.getElementById('regOccupation').value.trim(),
-      school: document.getElementById('regSchool').value.trim(),
-      className: document.getElementById('regClass').value.trim(),
-      religion: document.getElementById('regReligion').value.trim(),
-      nationality: document.getElementById('regNationality').value.trim(),
-      blood: document.getElementById('regBlood').value.trim(),
       photo: await getPreviewPhoto('regPhotoPreview'),
       rating: '-', matches: '০ ম্যাচ'
     };
     await addDoc(collection(db, 'pending'), entry);
-    document.getElementById('regMsg').textContent = 'ধন্যবাদ! আপনার রেজিস্ট্রেশন জমা হয়েছে। পূরণকৃত ভর্তি ফরমটি নিচের ডাউনলোড বাটন থেকে PDF হিসেবে নিতে পারবেন।';
+    lastRegistrationData = {
+      ...entry, village: document.getElementById('regVillage').value.trim(), post: document.getElementById('regPost').value.trim(),
+      upazila: document.getElementById('regUpazila').value.trim(), district: document.getElementById('regDistrict').value.trim(),
+      pvillage: document.getElementById('regPVillage').value.trim(), ppost: document.getElementById('regPPost').value.trim(),
+      pupazila: document.getElementById('regPUpazila').value.trim(), pdistrict: document.getElementById('regPDistrict').value.trim(),
+      occupation: document.getElementById('regOccupation').value.trim(), school: document.getElementById('regSchool').value.trim(),
+      class: document.getElementById('regClass').value.trim(), religion: document.getElementById('regReligion').value.trim(),
+      nationality: document.getElementById('regNationality').value.trim(), blood: document.getElementById('regBlood').value.trim(),
+      photo: document.querySelector('#regPhotoPreview img')?.src || ''
+    };
+    document.getElementById('regMsg').textContent = 'ধন্যবাদ! আপনার রেজিস্ট্রেশন জমা হয়েছে। এখন নিচের বাটন থেকে পূরণকৃত ভর্তি ফরম PDF ডাউনলোড করতে পারবেন।';
     document.getElementById('regMsg').classList.add('show');
-    // Keep the completed form on screen so the applicant can download it after submission.
-    if (entry.photo && entry.photo.startsWith('data:image/')) {
-      document.getElementById('regPhotoPreview').innerHTML = `<img src="${entry.photo}" alt="ছবির প্রিভিউ">`;
-    }
-    updateFormDownloadButton();
+    const dl = document.getElementById('downloadFilledFormBtn');
+    if (dl) dl.disabled = false;
   } catch (e) {
     alert('দুঃখিত, সাবমিট করা যায়নি। আবার চেষ্টা করুন। (' + e.message + ')');
-  } finally {
-    submitBtn.disabled = false; submitBtn.textContent = 'রেজিস্ট্রেশন সাবমিট করুন';
   }
+}
+
+
+// ---- Filled academy form PDF ----
+const FORM_PAGE_W = 1024, FORM_PAGE_H = 1405;
+const FORM_POS = {
+  name:[168,492,760], father:[168,548,760], mother:[168,605,760],
+  village:[285,662,300], post:[625,662,300], upazila:[245,720,335], district:[625,720,300],
+  pvillage:[285,777,300], ppost:[625,777,300], pupazila:[245,835,335], pdistrict:[625,835,300],
+  dob:[225,893,335], occupation:[595,893,320], school:[330,950,600],
+  class:[155,1007,360], religion:[555,1007,365], pos:[350,1065,560],
+  nationality:[190,1122,300], phone:[575,1122,350], height:[235,1180,280], blood:[555,1180,360]
+};
+
+function formValue(data, ...keys) {
+  for (const k of keys) if (data && data[k] != null && String(data[k]).trim() !== '') return String(data[k]).trim();
+  return '';
+}
+function positionLabel(pos) { return posLabel[pos] || pos || ''; }
+function formatDOB(v) {
+  if (!v) return '';
+  const s = String(v);
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) {
+    const [y,m,d] = s.split('-'); return `${d}-${m}-${y}`;
+  }
+  return s;
+}
+function getRegistrationData() {
+  return {
+    name: document.getElementById('regName')?.value || '', father: document.getElementById('regFather')?.value || '',
+    mother: document.getElementById('regMother')?.value || '', village: document.getElementById('regVillage')?.value || '',
+    post: document.getElementById('regPost')?.value || '', upazila: document.getElementById('regUpazila')?.value || '',
+    district: document.getElementById('regDistrict')?.value || '', pvillage: document.getElementById('regPVillage')?.value || '',
+    ppost: document.getElementById('regPPost')?.value || '', pupazila: document.getElementById('regPUpazila')?.value || '',
+    pdistrict: document.getElementById('regPDistrict')?.value || '', dob: document.getElementById('regDOB')?.value || '',
+    occupation: document.getElementById('regOccupation')?.value || '', school: document.getElementById('regSchool')?.value || '',
+    class: document.getElementById('regClass')?.value || '', religion: document.getElementById('regReligion')?.value || '',
+    pos: document.getElementById('regPos')?.value || '', nationality: document.getElementById('regNationality')?.value || '',
+    phone: document.getElementById('regPhone')?.value || '', height: document.getElementById('regHeight')?.value || '',
+    blood: document.getElementById('regBlood')?.value || '', photo: pendingImageFiles.regPhotoPreview ? pendingImageFiles.regPhotoPreview : (document.querySelector('#regPhotoPreview img')?.src || '')
+  };
+}
+function updateFormDownloadButton() {
+  const btn = document.getElementById('downloadFilledFormBtn');
+  if (!btn) return;
+  const required = ['regName','regFather','regMother','regVillage','regPost','regUpazila','regDistrict','regPVillage','regPPost','regPUpazila','regPDistrict','regDOB','regOccupation','regSchool','regClass','regReligion','regPos','regNationality','regPhone','regHeight','regBlood'];
+  const ok = required.every(id => String(document.getElementById(id)?.value || '').trim()) && !!(pendingImageFiles.regPhotoPreview || document.querySelector('#regPhotoPreview img'));
+  btn.disabled = !ok;
+}
+async function loadFormImage(src) {
+  if (!src) return null;
+  return await new Promise((resolve, reject) => { const img = new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src; });
+}
+function makeFormOverlay(data, photoUrl) {
+  const wrap = document.createElement('div');
+  Object.assign(wrap.style,{position:'fixed',left:'-100000px',top:'0',width:FORM_PAGE_W+'px',height:FORM_PAGE_H+'px',overflow:'hidden',backgroundImage:'url("form-page1.jpg")',backgroundSize:'100% 100%',fontFamily:'Noto Sans Bengali, SolaimanLipi, Arial, sans-serif',fontSize:'18px',color:'#111'});
+  const add = (key,text) => { const [x,y,w]=FORM_POS[key]; const el=document.createElement('div'); el.textContent=text||''; Object.assign(el.style,{position:'absolute',left:x+'px',top:(y-18)+'px',width:w+'px',height:'24px',lineHeight:'24px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'clip',fontWeight:'400'}); wrap.appendChild(el); return el; };
+  add('name',formValue(data,'name')); add('father',formValue(data,'father')); add('mother',formValue(data,'mother'));
+  add('village',formValue(data,'village')); add('post',formValue(data,'post')); add('upazila',formValue(data,'upazila')); add('district',formValue(data,'district'));
+  add('pvillage',formValue(data,'pvillage')); add('ppost',formValue(data,'ppost')); add('pupazila',formValue(data,'pupazila')); add('pdistrict',formValue(data,'pdistrict'));
+  add('dob',formatDOB(formValue(data,'dob'))); add('occupation',formValue(data,'occupation')); add('school',formValue(data,'school'));
+  add('class',formValue(data,'class')); add('religion',formValue(data,'religion')); add('pos',positionLabel(formValue(data,'pos')));
+  add('nationality',formValue(data,'nationality')); add('phone',formValue(data,'phone')); add('height',formValue(data,'height')); add('blood',formValue(data,'blood'));
+  if (photoUrl) { const ph=document.createElement('img'); Object.assign(ph.style,{position:'absolute',left:'783px',top:'230px',width:'142px',height:'178px',objectFit:'cover'}); ph.src=photoUrl; wrap.appendChild(ph); }
+  document.body.appendChild(wrap); return wrap;
+}
+async function renderFormPage(data, photoUrl) {
+  const el=makeFormOverlay(data,photoUrl);
+  try { return await html2canvas(el,{width:FORM_PAGE_W,height:FORM_PAGE_H,scale:2,useCORS:true,backgroundColor:'#fff',logging:false}); }
+  finally { el.remove(); }
+}
+async function downloadFilledForm(dataOverride=null) {
+  if (!window.html2canvas || !window.jspdf) { alert('PDF লাইব্রেরি লোড হয়নি। Internet connection পরীক্ষা করুন।'); return; }
+  const data=dataOverride || lastRegistrationData || getRegistrationData();
+  const photoUrl=formValue(data,'photo');
+  if (!data.name) { alert('ফরমের প্রয়োজনীয় তথ্য পূরণ করুন।'); return; }
+  try {
+    const canvas=await renderFormPage(data,photoUrl);
+    const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',0,0,595.28,841.89);
+    const page2=await loadFormImage('form-page2.jpg');
+    if (page2) { pdf.addPage(); pdf.addImage(page2,'JPEG',0,0,595.28,841.89); }
+    pdf.save(`PFA_ভর্তি_ফরম_${(data.name||'player').replace(/[\\/:*?"<>|]/g,'_')}.pdf`);
+  } catch(e) { console.error(e); alert('PDF তৈরি করা যায়নি: '+e.message); }
 }
 
 // ---- Admin: pending approvals ----
@@ -654,7 +513,6 @@ function renderPending() {
       <div class="pending-thumb">${photoTag(p.photo)}</div>
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-') }<br>${escapeHTML(p.phone || '')}</div>
       <div class="pending-actions">
-        <button class="mini-btn admin-edit" onclick="adminDownloadPendingForm('${p.id}')">PDF</button>
         <button class="mini-btn mini-approve" onclick="approvePending('${p.id}')">অনুমোদন</button>
         <button class="mini-btn mini-reject" onclick="rejectPending('${p.id}')">বাতিল</button>
       </div>
@@ -736,7 +594,6 @@ function renderAdminPlayerList() {
       <div class="pending-thumb">${photoTag(p.photo)}</div>
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-')}<br>রেটিং: ${escapeHTML(p.rating)}</div>
       <div class="pending-actions">
-        <button class="mini-btn admin-edit" onclick="adminDownloadPlayerForm('${p.id}')">PDF</button>
         <button class="mini-btn admin-edit" onclick="editPlayer('${p.id}')">এডিট</button>
         <button class="mini-btn mini-reject" onclick="deletePlayer('${p.id}')">ডিলিট</button>
       </div>
@@ -1178,7 +1035,7 @@ onSnapshot(doc(db, 'meta', 'settings'), snap => {
 // Expose functions used via inline onclick= attributes in the HTML
 Object.assign(window, {
   toggleSidebar, showView, filterPlayers, openModal, closeModal, closeModalBg, showSocial, toggleHireInfo,
-  previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, adminDownloadPlayerForm, adminDownloadPendingForm, approvePending, rejectPending,
+  previewPhoto, submitRegistration, updateFormDownloadButton, downloadFilledForm, approvePending, rejectPending,
   adminLogin, adminLogout, adminTab, adminAddPlayer, editPlayer, cancelPlayerEdit, deletePlayer,
   adminUpdateMatch, adminSaveCommittee, editCommittee, cancelCommitteeEdit, deleteCommittee,
   adminSaveCoach, editCoach, cancelCoachEdit, deleteCoach,
@@ -1190,7 +1047,7 @@ Object.assign(window, {
 // Expose the handlers explicitly so those buttons can call them.
 Object.assign(window, {
   showView, toggleSidebar, closeModal, closeModalBg, showSocial,
-  filterPlayers, previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, adminDownloadPlayerForm, adminDownloadPendingForm,
+  filterPlayers, previewPhoto, submitRegistration,
   approvePending, rejectPending, adminLogin, adminLogout, adminTab,
   fillMatchForm, editPlayer, cancelPlayerEdit, deletePlayer, adminAddPlayer,
   adminUpdateMatch, renderAdminPlayerList,
