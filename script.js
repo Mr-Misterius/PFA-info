@@ -394,20 +394,20 @@ async function submitRegistration() {
       post: document.getElementById('regPost').value.trim(),
       upazila: document.getElementById('regUpazila').value.trim(),
       district: document.getElementById('regDistrict').value.trim(),
-      pvillage: document.getElementById('regPVillage').value.trim(),
-      ppost: document.getElementById('regPPost').value.trim(),
-      pupazila: document.getElementById('regPUpazila').value.trim(),
-      pdistrict: document.getElementById('regPDistrict').value.trim(),
+      pVillage: document.getElementById('regPVillage').value.trim(),
+      pPost: document.getElementById('regPPost').value.trim(),
+      pUpazila: document.getElementById('regPUpazila').value.trim(),
+      pDistrict: document.getElementById('regPDistrict').value.trim(),
       dob: document.getElementById('regDOB').value,
       occupation: document.getElementById('regOccupation').value.trim(),
       school: document.getElementById('regSchool').value.trim(),
       className: document.getElementById('regClass').value.trim(),
       religion: document.getElementById('regReligion').value.trim(),
+      pos: document.getElementById('regPos').value,
+      nationality: document.getElementById('regNationality').value.trim(),
       height: document.getElementById('regHeight').value.trim(),
       blood: document.getElementById('regBlood').value.trim(),
-      nationality: document.getElementById('regNationality').value.trim(),
       exp: document.getElementById('regExp').value.trim(),
-      pos: document.getElementById('regPos').value,
       club: document.getElementById('regClub').value.trim(),
       photo: await getPreviewPhoto('regPhotoPreview'),
       rating: '-', matches: '০ ম্যাচ'
@@ -415,144 +415,15 @@ async function submitRegistration() {
     await addDoc(collection(db, 'pending'), entry);
     document.getElementById('regMsg').textContent = 'ধন্যবাদ! আপনার রেজিস্ট্রেশন জমা হয়েছে, এডমিন অনুমোদনের পর প্রোফাইল প্লেয়ার মার্কেটে দেখা যাবে।';
     document.getElementById('regMsg').classList.add('show');
-    ['regName','regFather','regMother','regDOB','regHeight','regExp','regClub','regPhone'].forEach(id => document.getElementById(id).value = '');
+    ['regName','regFather','regMother','regVillage','regPost','regUpazila','regDistrict','regPVillage','regPPost','regPUpazila','regPDistrict','regDOB','regOccupation','regSchool','regClass','regReligion','regPhone','regHeight','regBlood','regExp','regClub'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('regNationality').value = 'বাংলাদেশী';
+    document.getElementById('regPos').value = 'GK';
+    updateFormDownloadButton();
     clearPendingImage('regPhotoPreview');
     document.getElementById('regPhotoPreview').innerHTML = shieldSVG;
   } catch (e) {
     alert('দুঃখিত, সাবমিট করা যায়নি। আবার চেষ্টা করুন। (' + e.message + ')');
   }
-}
-
-// ---- Filled admission form PDF ----
-const FORM_W = 1024;
-const FORM_H = 1448;
-
-function formValue(id) {
-  const el = document.getElementById(id);
-  return el ? String(el.value || '').trim() : '';
-}
-
-function getRegistrationFormData() {
-  return {
-    name: formValue('regName'), father: formValue('regFather'), mother: formValue('regMother'),
-    village: formValue('regVillage'), post: formValue('regPost'), upazila: formValue('regUpazila'), district: formValue('regDistrict'),
-    pvillage: formValue('regPVillage'), ppost: formValue('regPPost'), pupazila: formValue('regPUpazila'), pdistrict: formValue('regPDistrict'),
-    dob: formValue('regDOB'), occupation: formValue('regOccupation'), school: formValue('regSchool'),
-    className: formValue('regClass'), religion: formValue('regReligion'), pos: formValue('regPos'),
-    nationality: formValue('regNationality'), phone: formValue('regPhone'), height: formValue('regHeight'), blood: formValue('regBlood'),
-    photo: pendingImageFiles.regPhotoPreview || document.querySelector('#regPhotoPreview img')?.src || ''
-  };
-}
-
-function allRegistrationFieldsFilled(d = getRegistrationFormData()) {
-  return !!(d.name && d.father && d.mother && d.village && d.post && d.upazila && d.district &&
-    d.pvillage && d.ppost && d.pupazila && d.pdistrict && d.dob && d.occupation && d.school &&
-    d.className && d.religion && d.pos && d.nationality && d.phone && d.height && d.blood && d.photo);
-}
-
-function updateFormDownloadButton() {
-  const btn = document.getElementById('downloadFilledFormBtn');
-  const note = document.getElementById('formDownloadNote');
-  if (!btn) return;
-  const ok = allRegistrationFieldsFilled();
-  btn.disabled = !ok;
-  if (note) note.textContent = ok ? 'সব তথ্য পূরণ হয়েছে — এখন পূরণকৃত ফরম PDF ডাউনলোড করতে পারবেন।' : 'সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করলে ডাউনলোড বাটনটি চালু হবে।';
-}
-
-function makeFormText(text) {
-  return String(text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function formPageMarkup(d, page) {
-  if (page === 2) {
-    return `<div class="pdf-page" style="width:${FORM_W}px;height:${FORM_H}px;background-image:url('form-page2.jpg')">
-      <div class="pdf-text pdf-name-declaration">${makeFormText(d.name)}</div>
-    </div>`;
-  }
-  const pos = posLabel[d.pos] || d.pos || '';
-  const dob = d.dob ? d.dob.split('-').reverse().join('/') : '';
-  return `<div class="pdf-page" style="width:${FORM_W}px;height:${FORM_H}px;background-image:url('form-page1.jpg')">
-    <div class="pdf-text p-name">${makeFormText(d.name)}</div>
-    <div class="pdf-text p-father">${makeFormText(d.father)}</div>
-    <div class="pdf-text p-mother">${makeFormText(d.mother)}</div>
-    <div class="pdf-text p-cur-village">${makeFormText(d.village)}</div>
-    <div class="pdf-text p-cur-post">${makeFormText(d.post)}</div>
-    <div class="pdf-text p-cur-upazila">${makeFormText(d.upazila)}</div>
-    <div class="pdf-text p-cur-district">${makeFormText(d.district)}</div>
-    <div class="pdf-text p-per-village">${makeFormText(d.pvillage)}</div>
-    <div class="pdf-text p-per-post">${makeFormText(d.ppost)}</div>
-    <div class="pdf-text p-per-upazila">${makeFormText(d.pupazila)}</div>
-    <div class="pdf-text p-per-district">${makeFormText(d.pdistrict)}</div>
-    <div class="pdf-text p-dob">${makeFormText(dob)}</div>
-    <div class="pdf-text p-occupation">${makeFormText(d.occupation)}</div>
-    <div class="pdf-text p-school">${makeFormText(d.school)}</div>
-    <div class="pdf-text p-class">${makeFormText(d.className)}</div>
-    <div class="pdf-text p-religion">${makeFormText(d.religion)}</div>
-    <div class="pdf-text p-pos">${makeFormText(pos)}</div>
-    <div class="pdf-text p-nationality">${makeFormText(d.nationality)}</div>
-    <div class="pdf-text p-phone">${makeFormText(d.phone)}</div>
-    <div class="pdf-text p-height">${makeFormText(d.height)}</div>
-    <div class="pdf-text p-blood">${makeFormText(d.blood)}</div>
-    ${d.photo ? `<img class="pdf-photo" src="${d.photo}" crossorigin="anonymous">` : ''}
-  </div>`;
-}
-
-async function downloadFilledForm(data = null, adminMode = false) {
-  const d = data || getRegistrationFormData();
-  if (!adminMode && !allRegistrationFieldsFilled(d)) {
-    alert('ফরম PDF ডাউনলোডের আগে সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করুন।');
-    return;
-  }
-  if (!window.html2canvas || !window.jspdf) {
-    alert('PDF সিস্টেম লোড হয়নি। ইন্টারনেট সংযোগ ঠিক আছে কিনা দেখে আবার চেষ্টা করুন।');
-    return;
-  }
-  const host = document.createElement('div');
-  host.style.cssText = 'position:fixed;left:-12000px;top:0;width:1024px;background:#fff;z-index:-1;';
-  host.innerHTML = `<style>
-    .pdf-page{position:relative;background-size:100% 100%;background-repeat:no-repeat;overflow:hidden;font-family:"Noto Sans Bengali","Noto Sans",Arial,sans-serif;color:#111;}
-    .pdf-text{position:absolute;white-space:nowrap;font-size:25px;line-height:1.1;font-weight:600;max-width:900px;overflow:hidden;text-overflow:clip;}
-    /* Field positions matched to the marked dotted-line areas on the original form */
-    .p-name{left:402px;top:488px}.p-father{left:398px;top:563px}.p-mother{left:360px;top:619px}
-    .p-cur-village{left:174px;top:688px}.p-cur-post{left:795px;top:688px}.p-cur-upazila{left:174px;top:740px}.p-cur-district{left:815px;top:740px}
-    .p-per-village{left:160px;top:825px}.p-per-post{left:816px;top:825px}.p-per-upazila{left:151px;top:898px}.p-per-district{left:820px;top:898px}
-    .p-dob{left:108px;top:970px}.p-occupation{left:820px;top:970px}.p-school{left:177px;top:1032px}
-    .p-class{left:291px;top:1097px}.p-religion{left:770px;top:1097px}.p-pos{left:651px;top:1172px}
-    .p-nationality{left:332px;top:1245px}.p-phone{left:827px;top:1245px}.p-height{left:323px;top:1310px}.p-blood{left:840px;top:1310px}
-    .pdf-photo{position:absolute;left:800px;top:230px;width:160px;height:210px;object-fit:cover;}
-    .pdf-name-declaration{left:120px;top:987px;font-size:25px;}
-  </style>${formPageMarkup(d,1)}${formPageMarkup(d,2)}`;
-  document.body.appendChild(host);
-  try {
-    const pages = host.querySelectorAll('.pdf-page');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4', compress:true});
-    for (let i=0;i<pages.length;i++) {
-      const canvas = await html2canvas(pages[i], {scale:2, useCORS:true, backgroundColor:'#fff', logging:false});
-      const img = canvas.toDataURL('image/jpeg', 0.94);
-      if (i) pdf.addPage();
-      pdf.addImage(img, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-    }
-    const safeName = (d.name || 'player').replace(/[\\/:*?"<>|]/g,'_').slice(0,60);
-    pdf.save(`PFA_ভর্তি_ফরম_${safeName}.pdf`);
-  } catch (e) {
-    console.error('Filled form PDF failed:', e);
-    alert('PDF তৈরি করা যায়নি। আবার চেষ্টা করুন।');
-  } finally {
-    host.remove();
-  }
-}
-
-async function downloadPendingForm(id) {
-  const p = pending.find(x => x.id === id);
-  if (!p) { alert('রেজিস্ট্রেশনটি পাওয়া যায়নি।'); return; }
-  const d = {
-    name:p.name, father:p.father, mother:p.mother, village:p.village, post:p.post, upazila:p.upazila, district:p.district,
-    pvillage:p.pvillage, ppost:p.ppost, pupazila:p.pupazila, pdistrict:p.pdistrict, dob:p.dob, occupation:p.occupation,
-    school:p.school, className:p.className, religion:p.religion, pos:p.pos, nationality:p.nationality, phone:p.phone,
-    height:p.height, blood:p.blood, photo:p.photo
-  };
-  await downloadFilledForm(d, true);
 }
 
 // ---- Admin: pending approvals ----
@@ -566,7 +437,7 @@ function renderPending() {
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-') }<br>${escapeHTML(p.phone || '')}</div>
       <div class="pending-actions">
         <button class="mini-btn mini-approve" onclick="approvePending('${p.id}')">অনুমোদন</button>
-        <button class="mini-btn" onclick="downloadPendingForm('${p.id}')">ফরম PDF</button>
+        <button class="mini-btn admin-edit" onclick="downloadAdminForm('${p.id}','pending')">ফরম PDF</button>
         <button class="mini-btn mini-reject" onclick="rejectPending('${p.id}')">বাতিল</button>
       </div>
     </div>`).join('');
@@ -585,6 +456,78 @@ async function approvePending(id) {
 }
 async function rejectPending(id) {
   try { await deleteDoc(doc(db, 'pending', id)); } catch (e) { alert('সমস্যা হয়েছে: ' + e.message); }
+}
+
+
+// ---- Filled admission form PDF ----
+function formValue(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+function formDataFromInputs(){
+  return {
+    name:formValue('regName'), father:formValue('regFather'), mother:formValue('regMother'),
+    village:formValue('regVillage'), post:formValue('regPost'), upazila:formValue('regUpazila'), district:formValue('regDistrict'),
+    pVillage:formValue('regPVillage'), pPost:formValue('regPPost'), pUpazila:formValue('regPUpazila'), pDistrict:formValue('regPDistrict'),
+    dob:formValue('regDOB'), occupation:formValue('regOccupation'), school:formValue('regSchool'), className:formValue('regClass'),
+    religion:formValue('regReligion'), pos:formValue('regPos'), nationality:formValue('regNationality'), phone:formValue('regPhone'),
+    height:formValue('regHeight'), blood:formValue('regBlood'), photo:(document.querySelector('#regPhotoPreview img')?.src || '')
+  };
+}
+function updateFormDownloadButton(){
+  const btn=document.getElementById('downloadFilledFormBtn'); if(!btn) return;
+  const ids=['regPhoto','regName','regFather','regMother','regVillage','regPost','regUpazila','regDistrict','regPVillage','regPPost','regPUpazila','regPDistrict','regDOB','regOccupation','regSchool','regClass','regReligion','regPos','regNationality','regPhone','regHeight','regBlood'];
+  const ok=ids.every(id=>{const el=document.getElementById(id); return id==='regPhoto' ? !!el.files?.length : !!el?.value?.trim();});
+  btn.disabled=!ok;
+  const note=document.getElementById('formDownloadNote'); if(note) note.textContent=ok?'সব তথ্য পূরণ হয়েছে — এখন PDF ডাউনলোড করতে পারবেন।':'সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করলে ডাউনলোড বাটনটি চালু হবে।';
+}
+function loadImage(src){ return new Promise((resolve,reject)=>{const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src;}); }
+function fmtDate(v){ if(!v) return ''; const [y,m,d]=v.split('-'); return d&&m&&y?`${d}-${m}-${y}`:v; }
+function fitText(text,max){ text=String(text||''); return text.length>max ? text.slice(0,max-1)+'…' : text; }
+async function makeFilledFormPDF(data, filename='PFA-filled-form.pdf'){
+  if(!window.jspdf?.jsPDF) throw new Error('PDF library load হয়নি। ইন্টারনেট connection check করুন।');
+  const page1=await loadImage('form-page1.jpg'), page2=await loadImage('form-page2.jpg');
+  const W=1448,H=2048;
+  const container=document.createElement('div');
+  container.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;background:#fff;font-family:Arial,"Noto Sans Bengali",sans-serif;z-index:-1;`;
+  document.body.appendChild(container);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const makePage=(img,html)=>{ const d=document.createElement('div'); d.style.cssText=`position:relative;width:${W}px;height:${H}px;overflow:hidden;background:#fff;`; d.innerHTML=`<img src="${img.src}" style="position:absolute;inset:0;width:100%;height:100%;display:block;">${html}`; container.appendChild(d); return d; };
+  const t=(x,y,w,text,size=28,align='left')=>`<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;font-size:${size}px;line-height:1.05;font-weight:500;color:#111;text-align:${align};white-space:nowrap;overflow:hidden;">${esc(fitText(text,38))}</div>`;
+  let photoHtml='';
+  if(data.photo){ photoHtml=`<img src="${esc(data.photo)}" style="position:absolute;left:1133px;top:335px;width:224px;height:306px;object-fit:cover;">`; }
+  const p1=`${photoHtml}
+    ${t(205,700,1100,data.name)}
+    ${t(247,787,1100,data.father)}
+    ${t(247,875,1100,data.mother)}
+    ${t(403,970,440,data.village)}${t(1018,970,360,data.post)}
+    ${t(354,1057,520,data.upazila)}${t(1011,1057,360,data.district)}
+    ${t(403,1145,440,data.pVillage)}${t(1018,1145,360,data.pPost)}
+    ${t(354,1232,520,data.pUpazila)}${t(1011,1232,360,data.pDistrict)}
+    ${t(247,1320,520,fmtDate(data.dob))}${t(856,1320,480,data.occupation)}
+    ${t(354,1407,980,data.school)}
+    ${t(219,1494,500,data.className)}${t(863,1494,470,data.religion)}
+    ${t(488,1582,1000,posLabel[data.pos]||data.pos)}
+    ${t(290,1668,410,data.nationality)}${t(841,1668,530,data.phone)}
+    ${t(290,1756,410,data.height)}${t(919,1756,400,data.blood)}`;
+  const d1=makePage(page1,p1);
+  const d2=makePage(page2,'');
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const canvas1=await html2canvas(d1,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+  const canvas2=await html2canvas(d2,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+  const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+  pdf.addImage(canvas1.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297); pdf.addPage(); pdf.addImage(canvas2.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297); pdf.save(filename);
+  container.remove();
+}
+async function downloadFilledForm(){
+  const data=formDataFromInputs();
+  const ids=['name','father','mother','village','post','upazila','district','pVillage','pPost','pUpazila','pDistrict','dob','occupation','school','className','religion','nationality','phone','height','blood'];
+  if(ids.some(k=>!data[k]) || !data.photo){ alert('প্রথমে সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করুন।'); return; }
+  const btn=document.getElementById('downloadFilledFormBtn'); if(btn){btn.disabled=true;btn.textContent='PDF তৈরি হচ্ছে...';}
+  try{ await makeFilledFormPDF(data,'PFA-ভর্তি-ফরম.pdf'); }catch(e){console.error(e);alert('PDF তৈরি করা যায়নি: '+e.message);} finally{updateFormDownloadButton(); if(btn)btn.textContent='⬇ পূরণকৃত ভর্তি ফরম PDF ডাউনলোড';}
+}
+async function downloadAdminForm(id,type){
+  if(!auth.currentUser || !isAdmin){alert('Admin Login করুন।');return;}
+  const list=type==='pending'?pending:players; const p=list.find(x=>x.id===id); if(!p)return;
+  const data={...p, photo:safeUrl(p.photo||'')};
+  try{await makeFilledFormPDF(data,`PFA-${(p.name||'player').replace(/[^\p{L}\p{N}_-]+/gu,'_')}-ভর্তি-ফরম.pdf`);}catch(e){console.error(e);alert('PDF তৈরি করা যায়নি: '+e.message);}
 }
 
 // ---- Admin login/logout ----
@@ -638,21 +581,6 @@ function fillMatchForm() {
   document.getElementById('matchLogoPreview').innerHTML = matchInfo.team2Logo ? `<img src="${escapeHTML(safeUrl(matchInfo.team2Logo))}" alt="">` : shieldSVG;
 }
 
-// Admin can download an approved player's form at any time. Existing records
-// may not have every newer field, so missing values are simply left blank.
-async function downloadPlayerForm(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) { alert('প্লেয়ারটি পাওয়া যায়নি।'); return; }
-  await downloadFilledForm({
-    name:p.name || '', father:p.father || '', mother:p.mother || '',
-    village:p.village || '', post:p.post || '', upazila:p.upazila || '', district:p.district || '',
-    pvillage:p.pvillage || '', ppost:p.ppost || '', pupazila:p.pupazila || '', pdistrict:p.pdistrict || '',
-    dob:p.dob || '', occupation:p.occupation || '', school:p.school || '', className:p.className || '',
-    religion:p.religion || '', pos:p.pos || '', nationality:p.nationality || 'বাংলাদেশী',
-    phone:p.phone || '', height:p.height || '', blood:p.blood || '', photo:p.photo || ''
-  }, true);
-}
-
 // ---- Admin: players (full CRUD, including rating) ----
 function renderAdminPlayerList() {
   const wrap = document.getElementById('adminPlayerList');
@@ -662,8 +590,8 @@ function renderAdminPlayerList() {
       <div class="pending-thumb">${photoTag(p.photo)}</div>
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-')}<br>রেটিং: ${escapeHTML(p.rating)}</div>
       <div class="pending-actions">
-        <button class="mini-btn" onclick="downloadPlayerForm('${p.id}')">ফরম PDF</button>
         <button class="mini-btn admin-edit" onclick="editPlayer('${p.id}')">এডিট</button>
+        <button class="mini-btn admin-edit" onclick="downloadAdminForm('${p.id}','player')">ফরম PDF</button>
         <button class="mini-btn mini-reject" onclick="deletePlayer('${p.id}')">ডিলিট</button>
       </div>
     </div>`).join('');
@@ -675,7 +603,22 @@ function editPlayer(id) {
   document.getElementById('adminName').value = p.name || '';
   document.getElementById('adminFather').value = p.father || '';
   document.getElementById('adminMother').value = p.mother || '';
+  document.getElementById('adminVillage').value = p.village || '';
+  document.getElementById('adminPost').value = p.post || '';
+  document.getElementById('adminUpazila').value = p.upazila || '';
+  document.getElementById('adminDistrict').value = p.district || '';
+  document.getElementById('adminPVillage').value = p.pVillage || '';
+  document.getElementById('adminPPost').value = p.pPost || '';
+  document.getElementById('adminPUpazila').value = p.pUpazila || '';
+  document.getElementById('adminPDistrict').value = p.pDistrict || '';
   document.getElementById('adminDOB').value = p.dob || '';
+  document.getElementById('adminOccupation').value = p.occupation || '';
+  document.getElementById('adminSchool').value = p.school || '';
+  document.getElementById('adminClass').value = p.className || '';
+  document.getElementById('adminReligion').value = p.religion || '';
+  document.getElementById('adminNationality').value = p.nationality || 'বাংলাদেশী';
+  document.getElementById('adminPhone').value = p.phone || '';
+  document.getElementById('adminBlood').value = p.blood || '';
   document.getElementById('adminHeight').value = p.height || '';
   document.getElementById('adminExp').value = p.exp || '';
   document.getElementById('adminPos').value = p.pos || 'GK';
@@ -692,7 +635,7 @@ function editPlayer(id) {
 }
 function cancelPlayerEdit() {
   editingPlayerId = null;
-  ['adminName','adminFather','adminMother','adminDOB','adminHeight','adminExp','adminClub','adminMatches','adminRating','adminVideo'].forEach(id => document.getElementById(id).value = '');
+  ['adminName','adminFather','adminMother','adminVillage','adminPost','adminUpazila','adminDistrict','adminPVillage','adminPPost','adminPUpazila','adminPDistrict','adminDOB','adminOccupation','adminSchool','adminClass','adminReligion','adminNationality','adminPhone','adminBlood','adminHeight','adminExp','adminClub','adminMatches','adminRating','adminVideo'].forEach(id => document.getElementById(id).value = '');
   clearPendingImage('adminPhotoPreview');
     document.getElementById('adminPhotoPreview').innerHTML = shieldSVG;
   document.getElementById('playerFormTitle').textContent = 'নতুন প্লেয়ার সরাসরি যোগ করুন';
@@ -719,7 +662,22 @@ async function adminAddPlayer() {
       name,
       father: document.getElementById('adminFather').value.trim(),
       mother: document.getElementById('adminMother').value.trim(),
+      village: document.getElementById('adminVillage').value.trim(),
+      post: document.getElementById('adminPost').value.trim(),
+      upazila: document.getElementById('adminUpazila').value.trim(),
+      district: document.getElementById('adminDistrict').value.trim(),
+      pVillage: document.getElementById('adminPVillage').value.trim(),
+      pPost: document.getElementById('adminPPost').value.trim(),
+      pUpazila: document.getElementById('adminPUpazila').value.trim(),
+      pDistrict: document.getElementById('adminPDistrict').value.trim(),
       dob: document.getElementById('adminDOB').value,
+      occupation: document.getElementById('adminOccupation').value.trim(),
+      school: document.getElementById('adminSchool').value.trim(),
+      className: document.getElementById('adminClass').value.trim(),
+      religion: document.getElementById('adminReligion').value.trim(),
+      nationality: document.getElementById('adminNationality').value.trim(),
+      phone: document.getElementById('adminPhone').value.trim(),
+      blood: document.getElementById('adminBlood').value.trim(),
       height: document.getElementById('adminHeight').value.trim(),
       exp: document.getElementById('adminExp').value.trim(),
       pos: document.getElementById('adminPos').value,
@@ -736,7 +694,7 @@ async function adminAddPlayer() {
       return;
     }
     await addDoc(collection(db, 'players'), data);
-    ['adminName','adminFather','adminMother','adminDOB','adminHeight','adminExp','adminClub','adminMatches','adminRating','adminVideo'].forEach(id => document.getElementById(id).value = '');
+    ['adminName','adminFather','adminMother','adminVillage','adminPost','adminUpazila','adminDistrict','adminPVillage','adminPPost','adminPUpazila','adminPDistrict','adminDOB','adminOccupation','adminSchool','adminClass','adminReligion','adminNationality','adminPhone','adminBlood','adminHeight','adminExp','adminClub','adminMatches','adminRating','adminVideo'].forEach(id => document.getElementById(id).value = '');
     clearPendingImage('adminPhotoPreview');
     document.getElementById('adminPhotoPreview').innerHTML = shieldSVG;
     document.getElementById('adminPhoto').value = '';
@@ -1104,7 +1062,7 @@ onSnapshot(doc(db, 'meta', 'settings'), snap => {
 // Expose functions used via inline onclick= attributes in the HTML
 Object.assign(window, {
   toggleSidebar, showView, filterPlayers, openModal, closeModal, closeModalBg, showSocial, toggleHireInfo,
-  previewPhoto, submitRegistration, updateFormDownloadButton, downloadFilledForm, downloadPendingForm, downloadPlayerForm, approvePending, rejectPending,
+  previewPhoto, submitRegistration, approvePending, rejectPending, updateFormDownloadButton, downloadFilledForm, downloadAdminForm,
   adminLogin, adminLogout, adminTab, adminAddPlayer, editPlayer, cancelPlayerEdit, deletePlayer,
   adminUpdateMatch, adminSaveCommittee, editCommittee, cancelCommitteeEdit, deleteCommittee,
   adminSaveCoach, editCoach, cancelCoachEdit, deleteCoach,
@@ -1116,7 +1074,7 @@ Object.assign(window, {
 // Expose the handlers explicitly so those buttons can call them.
 Object.assign(window, {
   showView, toggleSidebar, closeModal, closeModalBg, showSocial,
-  filterPlayers, previewPhoto, submitRegistration, updateFormDownloadButton, downloadFilledForm, downloadPendingForm, downloadPlayerForm,
+  filterPlayers, previewPhoto, submitRegistration, updateFormDownloadButton, downloadFilledForm, downloadAdminForm,
   approvePending, rejectPending, adminLogin, adminLogout, adminTab,
   fillMatchForm, editPlayer, cancelPlayerEdit, deletePlayer, adminAddPlayer,
   adminUpdateMatch, renderAdminPlayerList,
