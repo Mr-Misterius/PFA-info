@@ -290,8 +290,8 @@ function closeModalBg(e) { if (e.target.id === 'modalOverlay') closeModal(); }
 function showSocial() { document.getElementById('socialSection').style.display = 'block'; }
 
 const MAX_UPLOAD_SIZE = 12 * 1024 * 1024; // 12 MB raw file limit (before compression)
-const MAX_IMAGE_DIM = 900; // longer side, in px, after compression
-const IMAGE_QUALITY = 0.72; // JPEG quality used when compressing
+const MAX_IMAGE_DIM = 720; // keep Firestore documents and page loads lighter
+const IMAGE_QUALITY = 0.62; // initial JPEG quality
 const pendingImageFiles = {};
 
 function previewPhoto(input, previewId) {
@@ -328,19 +328,34 @@ function compressImageFile(file) {
       img.onerror = () => reject(new Error('ছবি লোড করা যায়নি। অন্য একটি ছবি দিয়ে চেষ্টা করুন।'));
       img.onload = () => {
         let { width, height } = img;
-        if (width > height && width > MAX_IMAGE_DIM) {
-          height = Math.round(height * (MAX_IMAGE_DIM / width));
-          width = MAX_IMAGE_DIM;
-        } else if (height >= width && height > MAX_IMAGE_DIM) {
-          width = Math.round(width * (MAX_IMAGE_DIM / height));
-          height = MAX_IMAGE_DIM;
-        }
+        const scale = Math.min(1, MAX_IMAGE_DIM / Math.max(width, height));
+        width = Math.max(1, Math.round(width * scale));
+        height = Math.max(1, Math.round(height * scale));
         const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d', {alpha:false});
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,width,height);
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
+        // Keep trying lower quality until the data URL is comfortably below
+        // Firestore's document limit. This also makes the public site faster.
+        let quality = IMAGE_QUALITY;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > 300000 && quality > 0.35) {
+          quality -= 0.07;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+        if (dataUrl.length > 300000) {
+          // One final dimension reduction for unusually detailed photos.
+          const factor = Math.sqrt(280000 / dataUrl.length);
+          const w2 = Math.max(320, Math.round(width * factor));
+          const h2 = Math.max(320, Math.round(height * factor));
+          canvas.width = w2; canvas.height = h2;
+          const ctx2 = canvas.getContext('2d', {alpha:false});
+          ctx2.fillStyle = '#fff'; ctx2.fillRect(0,0,w2,h2);
+          ctx2.drawImage(img, 0, 0, w2, h2);
+          dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+        }
+        resolve(dataUrl);
       };
       img.src = reader.result;
     };
@@ -378,7 +393,7 @@ function clearPendingImage(previewId) {
 
 // ---- Public registration (writes to 'pending', allowed for everyone) ----
 async function submitRegistration() {
-  const submitBtn = document.querySelector('#view-registration .submit-btn');
+  const submitBtn = document.querySelector('#view-registration button[onclick="submitRegistration()"]');
   if (submitBtn.disabled) return;
   const name = document.getElementById('regName').value.trim();
   const phone = document.getElementById('regPhone').value.trim();
@@ -483,13 +498,15 @@ function fmtDate(v){ if(!v) return ''; const [y,m,d]=v.split('-'); return d&&m&&
 function fitText(text,max){ text=String(text||''); return text.length>max ? text.slice(0,max-1)+'…' : text; }
 async function makeFilledFormPDF(data, filename='PFA-filled-form.pdf'){
   if(!window.jspdf?.jsPDF) throw new Error('PDF library load হয়নি। ইন্টারনেট connection check করুন।');
-  const page1=await loadImage('form-page1.jpg'), page2=await loadImage('form-page2.jpg');
+  const page1=await loadImage(new URL('form-page1.jpg', document.baseURI).href);
+  const page2=await loadImage(new URL('form-page2.jpg', document.baseURI).href);
   const W=1448,H=2048;
   const container=document.createElement('div');
-  container.style.cssText=`position:fixed;left:-10000px;top:0;width:${W}px;background:#fff;font-family:Arial,"Noto Sans Bengali",sans-serif;z-index:-1;`;
+  container.style.cssText=`position:fixed;left:0;top:0;width:${W}px;background:#fff;font-family:Arial,"Noto Sans Bengali",sans-serif;z-index:2147483647;opacity:0.01;pointer-events:none;`;
+  container.setAttribute('aria-hidden','true');
   document.body.appendChild(container);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const makePage=(img,html)=>{ const d=document.createElement('div'); d.style.cssText=`position:relative;width:${W}px;height:${H}px;overflow:hidden;background:#fff;`; d.innerHTML=`<img src="${img.src}" style="position:absolute;inset:0;width:100%;height:100%;display:block;">${html}`; container.appendChild(d); return d; };
+  const makePage=(img,html)=>{ const d=document.createElement('div'); d.style.cssText=`position:relative;width:${W}px;height:${H}px;overflow:hidden;background:#fff;`; d.innerHTML=`<img crossorigin="anonymous" src="${esc(img.src)}" style="position:absolute;inset:0;width:100%;height:100%;display:block;">${html}`; container.appendChild(d); return d; };
   const t=(x,y,w,text,size=28,align='left')=>`<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;font-size:${size}px;line-height:1.05;font-weight:500;color:#111;text-align:${align};white-space:nowrap;overflow:hidden;">${esc(fitText(text,38))}</div>`;
   let photoHtml='';
   if(data.photo){ photoHtml=`<img src="${esc(data.photo)}" style="position:absolute;left:1133px;top:335px;width:224px;height:306px;object-fit:cover;">`; }
@@ -509,9 +526,10 @@ async function makeFilledFormPDF(data, filename='PFA-filled-form.pdf'){
     ${t(290,1756,410,data.height)}${t(919,1756,400,data.blood)}`;
   const d1=makePage(page1,p1);
   const d2=makePage(page2,'');
+  if (!window.html2canvas) throw new Error('PDF image library load হয়নি। ইন্টারনেট connection check করুন।');
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-  const canvas1=await html2canvas(d1,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
-  const canvas2=await html2canvas(d2,{scale:2,useCORS:true,backgroundColor:'#fff',logging:false});
+  const canvas1=await html2canvas(d1,{scale:1,useCORS:true,allowTaint:false,backgroundColor:'#fff',logging:false,windowWidth:W,windowHeight:H});
+  const canvas2=await html2canvas(d2,{scale:1,useCORS:true,allowTaint:false,backgroundColor:'#fff',logging:false,windowWidth:W,windowHeight:H});
   const {jsPDF}=window.jspdf; const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
   pdf.addImage(canvas1.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297); pdf.addPage(); pdf.addImage(canvas2.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297); pdf.save(filename);
   container.remove();
@@ -526,7 +544,7 @@ async function downloadFilledForm(){
 async function downloadAdminForm(id,type){
   if(!auth.currentUser || !isAdmin){alert('Admin Login করুন।');return;}
   const list=type==='pending'?pending:players; const p=list.find(x=>x.id===id); if(!p)return;
-  const data={...p, photo:safeUrl(p.photo||'')};
+  const data={...p, className:p.className||p.class||'', occupation:p.occupation||p.job||'', school:p.school||p.education||'', nationality:p.nationality||'বাংলাদেশী', photo:safeUrl(p.photo||'')};
   try{await makeFilledFormPDF(data,`PFA-${(p.name||'player').replace(/[^\p{L}\p{N}_-]+/gu,'_')}-ভর্তি-ফরম.pdf`);}catch(e){console.error(e);alert('PDF তৈরি করা যায়নি: '+e.message);}
 }
 
