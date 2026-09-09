@@ -115,30 +115,46 @@
 <div class="view" id="view-registration">
   <div class="form-wrap">
     <h3>প্লেয়ার রেজিস্ট্রেশন</h3>
-    <p class="hint">ফর্ম সাবমিট করলে এডমিন অনুমোদনের পর আপনার প্রোফাইল প্লেয়ার মার্কেটে যুক্ত হবে।</p>
+    <p class="hint">নিচের তথ্যগুলো পূরণ করলে একাডেমির আসল ভর্তি ফরমে তথ্য বসিয়ে একটি PDF ডাউনলোড করা যাবে।</p>
     <div class="field">
-      <label>ছবি</label>
+      <label>ছবি <span class="required-mark">*</span></label>
       <div class="photo-preview" id="regPhotoPreview">SHIELD_SVG</div>
-      <input type="file" accept="image/*" id="regPhoto" onchange="previewPhoto(this,'regPhotoPreview')">
+      <input type="file" accept="image/*" id="regPhoto" onchange="previewPhoto(this,'regPhotoPreview'); updateFormDownloadButton()">
     </div>
-    <div class="field"><label>নাম</label><input type="text" id="regName" placeholder="আপনার পুরো নাম"></div>
-    <div class="field"><label>বাবার নাম</label><input type="text" id="regFather" placeholder="বাবার নাম"></div>
-    <div class="field"><label>মায়ের নাম</label><input type="text" id="regMother" placeholder="মায়ের নাম"></div>
-    <div class="field"><label>জন্ম তারিখ</label><input type="date" id="regDOB"></div>
-    <div class="field"><label>উচ্চতা</label><input type="text" id="regHeight" placeholder="যেমন ৫ ফুট ৭ ইঞ্চি"></div>
-    <div class="field"><label>খেলার অভিজ্ঞতা</label><input type="text" id="regExp" placeholder="যেমন ৩ বছর"></div>
+    <div class="field"><label>নাম <span class="required-mark">*</span></label><input type="text" id="regName" placeholder="আপনার পুরো নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>পিতার নাম <span class="required-mark">*</span></label><input type="text" id="regFather" placeholder="পিতার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>মাতার নাম <span class="required-mark">*</span></label><input type="text" id="regMother" placeholder="মাতার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>বর্তমান ঠিকানা — গ্রাম <span class="required-mark">*</span></label><input type="text" id="regVillage" placeholder="গ্রামের নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>বর্তমান ঠিকানা — ডাকঘর <span class="required-mark">*</span></label><input type="text" id="regPost" placeholder="ডাকঘরের নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>বর্তমান ঠিকানা — উপজেলা <span class="required-mark">*</span></label><input type="text" id="regUpazila" placeholder="উপজেলার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>বর্তমান ঠিকানা — জেলা <span class="required-mark">*</span></label><input type="text" id="regDistrict" placeholder="জেলার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>স্থায়ী ঠিকানা — গ্রাম <span class="required-mark">*</span></label><input type="text" id="regPVillage" placeholder="গ্রামের নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>স্থায়ী ঠিকানা — ডাকঘর <span class="required-mark">*</span></label><input type="text" id="regPPost" placeholder="ডাকঘরের নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>স্থায়ী ঠিকানা — উপজেলা <span class="required-mark">*</span></label><input type="text" id="regPUpazila" placeholder="উপজেলার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>স্থায়ী ঠিকানা — জেলা <span class="required-mark">*</span></label><input type="text" id="regPDistrict" placeholder="জেলার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>জন্ম তারিখ <span class="required-mark">*</span></label><input type="date" id="regDOB" required onchange="updateFormDownloadButton()"></div>
+    <div class="field"><label>পেশা <span class="required-mark">*</span></label><input type="text" id="regOccupation" placeholder="পেশা" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>শিক্ষা প্রতিষ্ঠানের নাম <span class="required-mark">*</span></label><input type="text" id="regSchool" placeholder="স্কুল / কলেজ / মাদ্রাসার নাম" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>শ্রেণী <span class="required-mark">*</span></label><input type="text" id="regClass" placeholder="যেমন: ৮ম শ্রেণী" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>ধর্ম <span class="required-mark">*</span></label><input type="text" id="regReligion" placeholder="ধর্ম" required oninput="updateFormDownloadButton()"></div>
     <div class="field">
-      <label>পজিশন</label>
-      <select id="regPos">
+      <label>কোন পজিশনে খেলতে ইচ্ছুক <span class="required-mark">*</span></label>
+      <select id="regPos" required onchange="updateFormDownloadButton()">
         <option value="GK">গোলকিপার</option>
         <option value="DEF">ডিফেন্ডার</option>
         <option value="MID">মিডফিল্ডার</option>
         <option value="FWD">ফরোয়ার্ড</option>
       </select>
     </div>
+    <div class="field"><label>জাতীয়তা <span class="required-mark">*</span></label><input type="text" id="regNationality" value="বাংলাদেশী" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>মোবাইল নম্বর <span class="required-mark">*</span></label><input type="text" id="regPhone" placeholder="যোগাযোগের নম্বর" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>উচ্চতা <span class="required-mark">*</span></label><input type="text" id="regHeight" placeholder="যেমন ৫ ফুট ৭ ইঞ্চি" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>রক্তের গ্রুপ <span class="required-mark">*</span></label><input type="text" id="regBlood" placeholder="যেমন B+" required oninput="updateFormDownloadButton()"></div>
+    <div class="field"><label>খেলার অভিজ্ঞতা</label><input type="text" id="regExp" placeholder="যেমন ৩ বছর"></div>
     <div class="field"><label>ক্লাব / একাডেমি</label><input type="text" id="regClub" placeholder="বর্তমান ক্লাব"></div>
-    <div class="field"><label>মোবাইল নম্বর</label><input type="text" id="regPhone" placeholder="যোগাযোগের নম্বর"></div>
-    <button class="submit-btn" onclick="submitRegistration()">রেজিস্ট্রেশন সাবমিট করুন</button>
+    <button type="button" class="submit-btn" onclick="submitRegistration()">রেজিস্ট্রেশন সাবমিট করুন</button>
+    <button type="button" class="download-form-btn" id="downloadFilledFormBtn" onclick="downloadFilledForm()" disabled>⬇ পূরণকৃত ভর্তি ফরম PDF ডাউনলোড</button>
+    <div class="form-download-note" id="formDownloadNote">সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করলে ডাউনলোড বাটনটি চালু হবে।</div>
   </div>
   <div class="msg-box" id="regMsg"></div>
 </div>
@@ -414,6 +430,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module" src="script.js"></script>
 </body>
 </html>

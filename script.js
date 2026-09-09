@@ -369,6 +369,156 @@ async function getPreviewPhoto(previewId, fallbackUrl = '') {
   }
 }
 
+
+const FORM_REQUIRED_IDS = [
+  'regName','regFather','regMother','regVillage','regPost','regUpazila','regDistrict',
+  'regPVillage','regPPost','regPUpazila','regPDistrict','regDOB','regOccupation',
+  'regSchool','regClass','regReligion','regPos','regNationality','regPhone','regHeight','regBlood'
+];
+
+function getRegistrationFormData() {
+  const value = id => (document.getElementById(id)?.value || '').trim();
+  return {
+    name: value('regName'), father: value('regFather'), mother: value('regMother'),
+    village: value('regVillage'), post: value('regPost'), upazila: value('regUpazila'), district: value('regDistrict'),
+    pvillage: value('regPVillage'), ppost: value('regPPost'), pupazila: value('regPUpazila'), pdistrict: value('regPDistrict'),
+    dob: document.getElementById('regDOB')?.value || '', occupation: value('regOccupation'), school: value('regSchool'),
+    className: value('regClass'), religion: value('regReligion'), pos: document.getElementById('regPos')?.value || '',
+    nationality: value('regNationality'), phone: value('regPhone'), height: value('regHeight'), blood: value('regBlood'),
+    exp: value('regExp'), club: value('regClub')
+  };
+}
+
+function hasRegistrationPhoto() {
+  if (pendingImageFiles['regPhotoPreview']) return true;
+  const img = document.querySelector('#regPhotoPreview img');
+  return !!img;
+}
+
+function updateFormDownloadButton() {
+  const btn = document.getElementById('downloadFilledFormBtn');
+  if (!btn) return;
+  const data = getRegistrationFormData();
+  const complete = FORM_REQUIRED_IDS.every(id => (document.getElementById(id)?.value || '').trim()) && hasRegistrationPhoto();
+  btn.disabled = !complete;
+  const note = document.getElementById('formDownloadNote');
+  if (note) note.textContent = complete
+    ? 'সব তথ্য পূরণ হয়েছে — এখন পূরণকৃত ভর্তি ফরম PDF ডাউনলোড করতে পারবেন।'
+    : 'সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করলে ডাউনলোড বাটনটি চালু হবে।';
+  return complete;
+}
+
+function loadImageForCanvas(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('ফরমের ছবি লোড করা যায়নি।'));
+    img.src = src;
+  });
+}
+
+function drawFittedText(ctx, text, x, y, maxWidth, font = '28px "Hind Siliguri", sans-serif') {
+  if (!text) return;
+  ctx.font = font;
+  ctx.fillStyle = '#111';
+  let value = String(text);
+  while (ctx.measureText(value).width > maxWidth && value.length > 1) value = value.slice(0, -1);
+  ctx.fillText(value, x, y);
+}
+
+async function getRegistrationPhotoDataUrl() {
+  const file = pendingImageFiles['regPhotoPreview'];
+  if (file) return compressImageFile(file);
+  const img = document.querySelector('#regPhotoPreview img');
+  if (!img) throw new Error('ছবি নির্বাচন করুন।');
+  const src = img.src;
+  if (src.startsWith('data:image/')) return src;
+  throw new Error('ছবিটি আবার নির্বাচন করুন।');
+}
+
+async function downloadFilledForm() {
+  if (!updateFormDownloadButton()) {
+    alert('ফরমের সব প্রয়োজনীয় ঘর পূরণ করুন এবং ছবি নির্বাচন করুন।');
+    return;
+  }
+  const btn = document.getElementById('downloadFilledFormBtn');
+  btn.disabled = true;
+  btn.textContent = 'PDF তৈরি হচ্ছে...';
+  try {
+    await document.fonts.ready;
+    const data = getRegistrationFormData();
+    const [bg1, bg2, photoData] = await Promise.all([
+      loadImageForCanvas('form-page1.jpg'),
+      loadImageForCanvas('form-page2.jpg'),
+      getRegistrationPhotoDataUrl()
+    ]);
+
+    const W = 1448, H = 2048;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(bg1, 0, 0, W, H);
+    ctx.textBaseline = 'alphabetic';
+
+    const font = '29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+    drawFittedText(ctx, data.name, 190, 735, 1160, font);
+    drawFittedText(ctx, data.father, 225, 818, 1120, font);
+    drawFittedText(ctx, data.mother, 225, 903, 1120, font);
+
+    // Current address
+    drawFittedText(ctx, data.village, 360, 980, 390, fontSmall);
+    drawFittedText(ctx, data.post, 850, 980, 480, fontSmall);
+    drawFittedText(ctx, data.upazila, 330, 1055, 420, fontSmall);
+    drawFittedText(ctx, data.district, 850, 1055, 480, fontSmall);
+
+    // Permanent address
+    drawFittedText(ctx, data.pvillage, 390, 1138, 400, fontSmall);
+    drawFittedText(ctx, data.ppost, 850, 1138, 480, fontSmall);
+    drawFittedText(ctx, data.pupazila, 330, 1210, 420, fontSmall);
+    drawFittedText(ctx, data.pdistrict, 850, 1210, 480, fontSmall);
+
+    drawFittedText(ctx, data.dob, 285, 1298, 360, fontSmall);
+    drawFittedText(ctx, data.occupation, 900, 1298, 430, fontSmall);
+    drawFittedText(ctx, data.school, 300, 1385, 1120, fontSmall);
+    drawFittedText(ctx, data.className, 300, 1462, 530, fontSmall);
+    drawFittedText(ctx, data.religion, 900, 1462, 430, fontSmall);
+    drawFittedText(ctx, posLabel[data.pos] || data.pos, 360, 1550, 1000, fontSmall);
+    drawFittedText(ctx, data.nationality, 280, 1634, 380, fontSmall);
+    drawFittedText(ctx, data.phone, 900, 1634, 430, fontSmall);
+    drawFittedText(ctx, data.height, 300, 1718, 520, fontSmall);
+    drawFittedText(ctx, data.blood, 900, 1718, 430, fontSmall);
+
+    // Applicant photo inside the printed photo box.
+    const photo = await loadImageForCanvas(photoData);
+    const px = 1135, py = 325, pw = 220, ph = 300;
+    const scale = Math.min(pw / photo.width, ph / photo.height);
+    const dw = photo.width * scale, dh = photo.height * scale;
+    ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+
+    const page1Data = canvas.toDataURL('image/jpeg', 0.94);
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(bg2, 0, 0, W, H);
+    const page2Data = canvas.toDataURL('image/jpeg', 0.94);
+
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) throw new Error('PDF লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+    pdf.addImage(page1Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+    pdf.addPage();
+    pdf.addImage(page2Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+    const safeName = (data.name || 'player').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
+    pdf.save(`PFA_ভর্তি_ফরম_${safeName}.pdf`);
+  } catch (e) {
+    console.error('Filled form PDF error:', e);
+    alert('PDF তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
+  } finally {
+    btn.disabled = !updateFormDownloadButton();
+    btn.textContent = '⬇ পূরণকৃত ভর্তি ফরম PDF ডাউনলোড';
+  }
+}
+
 function clearPendingImage(previewId) {
   delete pendingImageFiles[previewId];
   const inputMap = {regPhotoPreview:'regPhoto', adminPhotoPreview:'adminPhoto', committeePhotoPreview:'committeePhoto', coachPhotoPreview:'coachPhoto', logoCurrentPreview:'logoUpload', matchLogoPreview:'matchLogo'};
@@ -380,9 +530,12 @@ function clearPendingImage(previewId) {
 async function submitRegistration() {
   const submitBtn = document.querySelector('#view-registration .submit-btn');
   if (submitBtn.disabled) return;
+  if (!updateFormDownloadButton()) {
+    alert('রেজিস্ট্রেশন করার আগে ফরমের সব প্রয়োজনীয় তথ্য ও ছবি পূরণ করুন।');
+    return;
+  }
   const name = document.getElementById('regName').value.trim();
   const phone = document.getElementById('regPhone').value.trim();
-  if (!name || !phone) { alert('নাম ও মোবাইল নম্বর আবশ্যক।'); return; }
   if (name.length > 100 || phone.length > 30) { alert('নাম বা মোবাইল নম্বরের দৈর্ঘ্য সঠিক নয়।'); return; }
   submitBtn.disabled = true; submitBtn.textContent = 'সাবমিট হচ্ছে...';
   try {
@@ -395,17 +548,35 @@ async function submitRegistration() {
       exp: document.getElementById('regExp').value.trim(),
       pos: document.getElementById('regPos').value,
       club: document.getElementById('regClub').value.trim(),
+      village: document.getElementById('regVillage').value.trim(),
+      post: document.getElementById('regPost').value.trim(),
+      upazila: document.getElementById('regUpazila').value.trim(),
+      district: document.getElementById('regDistrict').value.trim(),
+      pvillage: document.getElementById('regPVillage').value.trim(),
+      ppost: document.getElementById('regPPost').value.trim(),
+      pupazila: document.getElementById('regPUpazila').value.trim(),
+      pdistrict: document.getElementById('regPDistrict').value.trim(),
+      occupation: document.getElementById('regOccupation').value.trim(),
+      school: document.getElementById('regSchool').value.trim(),
+      className: document.getElementById('regClass').value.trim(),
+      religion: document.getElementById('regReligion').value.trim(),
+      nationality: document.getElementById('regNationality').value.trim(),
+      blood: document.getElementById('regBlood').value.trim(),
       photo: await getPreviewPhoto('regPhotoPreview'),
       rating: '-', matches: '০ ম্যাচ'
     };
     await addDoc(collection(db, 'pending'), entry);
-    document.getElementById('regMsg').textContent = 'ধন্যবাদ! আপনার রেজিস্ট্রেশন জমা হয়েছে, এডমিন অনুমোদনের পর প্রোফাইল প্লেয়ার মার্কেটে দেখা যাবে।';
+    document.getElementById('regMsg').textContent = 'ধন্যবাদ! আপনার রেজিস্ট্রেশন জমা হয়েছে। পূরণকৃত ভর্তি ফরমটি নিচের ডাউনলোড বাটন থেকে PDF হিসেবে নিতে পারবেন।';
     document.getElementById('regMsg').classList.add('show');
-    ['regName','regFather','regMother','regDOB','regHeight','regExp','regClub','regPhone'].forEach(id => document.getElementById(id).value = '');
-    clearPendingImage('regPhotoPreview');
-    document.getElementById('regPhotoPreview').innerHTML = shieldSVG;
+    // Keep the completed form on screen so the applicant can download it after submission.
+    if (entry.photo && entry.photo.startsWith('data:image/')) {
+      document.getElementById('regPhotoPreview').innerHTML = `<img src="${entry.photo}" alt="ছবির প্রিভিউ">`;
+    }
+    updateFormDownloadButton();
   } catch (e) {
     alert('দুঃখিত, সাবমিট করা যায়নি। আবার চেষ্টা করুন। (' + e.message + ')');
+  } finally {
+    submitBtn.disabled = false; submitBtn.textContent = 'রেজিস্ট্রেশন সাবমিট করুন';
   }
 }
 
@@ -941,7 +1112,7 @@ onSnapshot(doc(db, 'meta', 'settings'), snap => {
 // Expose functions used via inline onclick= attributes in the HTML
 Object.assign(window, {
   toggleSidebar, showView, filterPlayers, openModal, closeModal, closeModalBg, showSocial, toggleHireInfo,
-  previewPhoto, submitRegistration, approvePending, rejectPending,
+  previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, approvePending, rejectPending,
   adminLogin, adminLogout, adminTab, adminAddPlayer, editPlayer, cancelPlayerEdit, deletePlayer,
   adminUpdateMatch, adminSaveCommittee, editCommittee, cancelCommitteeEdit, deleteCommittee,
   adminSaveCoach, editCoach, cancelCoachEdit, deleteCoach,
@@ -953,7 +1124,7 @@ Object.assign(window, {
 // Expose the handlers explicitly so those buttons can call them.
 Object.assign(window, {
   showView, toggleSidebar, closeModal, closeModalBg, showSocial,
-  filterPlayers, previewPhoto, submitRegistration,
+  filterPlayers, previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton,
   approvePending, rejectPending, adminLogin, adminLogout, adminTab,
   fillMatchForm, editPlayer, cancelPlayerEdit, deletePlayer, adminAddPlayer,
   adminUpdateMatch, renderAdminPlayerList,
