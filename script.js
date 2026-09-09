@@ -436,6 +436,73 @@ async function getRegistrationPhotoDataUrl() {
   throw new Error('ছবিটি আবার নির্বাচন করুন।');
 }
 
+async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
+  await document.fonts.ready;
+  const [bg1, bg2] = await Promise.all([
+    loadImageForCanvas('form-page1.jpg'),
+    loadImageForCanvas('form-page2.jpg')
+  ]);
+
+  const W = 1448, H = 2048;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.textBaseline = 'alphabetic';
+
+  const font = '29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+  const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
+
+  // Page 1 — exact positions matched to the printed form.
+  ctx.drawImage(bg1, 0, 0, W, H);
+  drawFittedText(ctx, data.name, 225, 735, 1115, font);
+  drawFittedText(ctx, data.father, 285, 818, 1055, font);
+  drawFittedText(ctx, data.mother, 285, 903, 1055, font);
+
+  drawFittedText(ctx, data.village, 405, 980, 365, fontSmall);
+  drawFittedText(ctx, data.post, 915, 980, 415, fontSmall);
+  drawFittedText(ctx, data.upazila, 335, 1055, 395, fontSmall);
+  drawFittedText(ctx, data.district, 915, 1055, 415, fontSmall);
+
+  drawFittedText(ctx, data.pvillage, 405, 1138, 365, fontSmall);
+  drawFittedText(ctx, data.ppost, 915, 1138, 415, fontSmall);
+  drawFittedText(ctx, data.pupazila, 335, 1210, 395, fontSmall);
+  drawFittedText(ctx, data.pdistrict, 915, 1210, 415, fontSmall);
+
+  drawFittedText(ctx, data.dob, 285, 1298, 360, fontSmall);
+  drawFittedText(ctx, data.occupation, 900, 1298, 430, fontSmall);
+  drawFittedText(ctx, data.school, 360, 1385, 1060, fontSmall);
+  drawFittedText(ctx, data.className, 300, 1462, 530, fontSmall);
+  drawFittedText(ctx, data.religion, 900, 1462, 430, fontSmall);
+  drawFittedText(ctx, posLabel[data.pos] || data.pos, 545, 1550, 815, fontSmall);
+  drawFittedText(ctx, data.nationality, 280, 1634, 380, fontSmall);
+  drawFittedText(ctx, data.phone, 900, 1634, 430, fontSmall);
+  drawFittedText(ctx, data.height, 300, 1718, 520, fontSmall);
+  drawFittedText(ctx, data.blood, 900, 1718, 430, fontSmall);
+
+  if (photoData) {
+    const photo = await loadImageForCanvas(photoData);
+    const px = 1135, py = 325, pw = 220, ph = 300;
+    const scale = Math.min(pw / photo.width, ph / photo.height);
+    const dw = photo.width * scale, dh = photo.height * scale;
+    ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
+  }
+
+  const page1Data = canvas.toDataURL('image/jpeg', 0.94);
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(bg2, 0, 0, W, H);
+  const page2Data = canvas.toDataURL('image/jpeg', 0.94);
+
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) throw new Error('PDF লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।');
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+  pdf.addImage(page1Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+  pdf.addPage();
+  pdf.addImage(page2Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+  const safeName = String(filenameName || 'player').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
+  pdf.save(`PFA_ভর্তি_ফরম_${safeName}.pdf`);
+}
+
 async function downloadFilledForm() {
   if (!updateFormDownloadButton()) {
     alert('ফরমের সব প্রয়োজনীয় ঘর পূরণ করুন এবং ছবি নির্বাচন করুন।');
@@ -445,77 +512,51 @@ async function downloadFilledForm() {
   btn.disabled = true;
   btn.textContent = 'PDF তৈরি হচ্ছে...';
   try {
-    await document.fonts.ready;
     const data = getRegistrationFormData();
-    const [bg1, bg2, photoData] = await Promise.all([
-      loadImageForCanvas('form-page1.jpg'),
-      loadImageForCanvas('form-page2.jpg'),
-      getRegistrationPhotoDataUrl()
-    ]);
-
-    const W = 1448, H = 2048;
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(bg1, 0, 0, W, H);
-    ctx.textBaseline = 'alphabetic';
-
-    const font = '29px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-    const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
-    drawFittedText(ctx, data.name, 190, 735, 1160, font);
-    drawFittedText(ctx, data.father, 225, 818, 1120, font);
-    drawFittedText(ctx, data.mother, 225, 903, 1120, font);
-
-    // Current address
-    drawFittedText(ctx, data.village, 360, 980, 390, fontSmall);
-    drawFittedText(ctx, data.post, 850, 980, 480, fontSmall);
-    drawFittedText(ctx, data.upazila, 330, 1055, 420, fontSmall);
-    drawFittedText(ctx, data.district, 850, 1055, 480, fontSmall);
-
-    // Permanent address
-    drawFittedText(ctx, data.pvillage, 390, 1138, 400, fontSmall);
-    drawFittedText(ctx, data.ppost, 850, 1138, 480, fontSmall);
-    drawFittedText(ctx, data.pupazila, 330, 1210, 420, fontSmall);
-    drawFittedText(ctx, data.pdistrict, 850, 1210, 480, fontSmall);
-
-    drawFittedText(ctx, data.dob, 285, 1298, 360, fontSmall);
-    drawFittedText(ctx, data.occupation, 900, 1298, 430, fontSmall);
-    drawFittedText(ctx, data.school, 300, 1385, 1120, fontSmall);
-    drawFittedText(ctx, data.className, 300, 1462, 530, fontSmall);
-    drawFittedText(ctx, data.religion, 900, 1462, 430, fontSmall);
-    drawFittedText(ctx, posLabel[data.pos] || data.pos, 360, 1550, 1000, fontSmall);
-    drawFittedText(ctx, data.nationality, 280, 1634, 380, fontSmall);
-    drawFittedText(ctx, data.phone, 900, 1634, 430, fontSmall);
-    drawFittedText(ctx, data.height, 300, 1718, 520, fontSmall);
-    drawFittedText(ctx, data.blood, 900, 1718, 430, fontSmall);
-
-    // Applicant photo inside the printed photo box.
-    const photo = await loadImageForCanvas(photoData);
-    const px = 1135, py = 325, pw = 220, ph = 300;
-    const scale = Math.min(pw / photo.width, ph / photo.height);
-    const dw = photo.width * scale, dh = photo.height * scale;
-    ctx.drawImage(photo, px + (pw - dw) / 2, py + (ph - dh) / 2, dw, dh);
-
-    const page1Data = canvas.toDataURL('image/jpeg', 0.94);
-    ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(bg2, 0, 0, W, H);
-    const page2Data = canvas.toDataURL('image/jpeg', 0.94);
-
-    const { jsPDF } = window.jspdf || {};
-    if (!jsPDF) throw new Error('PDF লাইব্রেরি লোড হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-    pdf.addImage(page1Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-    pdf.addPage();
-    pdf.addImage(page2Data, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-    const safeName = (data.name || 'player').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
-    pdf.save(`PFA_ভর্তি_ফরম_${safeName}.pdf`);
+    const photoData = await getRegistrationPhotoDataUrl();
+    await generateFilledFormPdf(data, photoData, data.name || 'player');
   } catch (e) {
     console.error('Filled form PDF error:', e);
     alert('PDF তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
   } finally {
     btn.disabled = !updateFormDownloadButton();
     btn.textContent = '⬇ পূরণকৃত ভর্তি ফরম PDF ডাউনলোড';
+  }
+}
+
+function playerToFormData(p) {
+  return {
+    name: p.name || '', father: p.father || '', mother: p.mother || '',
+    village: p.village || '', post: p.post || '', upazila: p.upazila || '', district: p.district || '',
+    pvillage: p.pvillage || '', ppost: p.ppost || '', pupazila: p.pupazila || '', pdistrict: p.pdistrict || '',
+    dob: p.dob || '', occupation: p.occupation || '', school: p.school || '',
+    className: p.className || '', religion: p.religion || '', pos: p.pos || '',
+    nationality: p.nationality || '', phone: p.phone || '', height: p.height || '', blood: p.blood || '',
+    exp: p.exp || '', club: p.club || ''
+  };
+}
+
+async function adminDownloadPlayerForm(id) {
+  if (!auth.currentUser || !isAdmin) { alert('Admin Login করুন।'); return; }
+  const p = players.find(player => player.id === id);
+  if (!p) { alert('প্লেয়ারের তথ্য পাওয়া যায়নি।'); return; }
+  try {
+    await generateFilledFormPdf(playerToFormData(p), p.photo || '', p.name || 'player');
+  } catch (e) {
+    console.error('Admin player form PDF error:', e);
+    alert('প্লেয়ারের ভর্তি ফরম তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
+  }
+}
+
+async function adminDownloadPendingForm(id) {
+  if (!auth.currentUser || !isAdmin) { alert('Admin Login করুন।'); return; }
+  const p = pending.find(item => item.id === id);
+  if (!p) { alert('রেজিস্ট্রেশনের তথ্য পাওয়া যায়নি।'); return; }
+  try {
+    await generateFilledFormPdf(playerToFormData(p), p.photo || '', p.name || 'player');
+  } catch (e) {
+    console.error('Admin pending form PDF error:', e);
+    alert('ভর্তি ফরম তৈরি করা যায়নি। আবার চেষ্টা করুন। ' + (e.message || ''));
   }
 }
 
@@ -590,6 +631,7 @@ function renderPending() {
       <div class="pending-thumb">${photoTag(p.photo)}</div>
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-') }<br>${escapeHTML(p.phone || '')}</div>
       <div class="pending-actions">
+        <button class="mini-btn admin-edit" onclick="adminDownloadPendingForm('${p.id}')">PDF</button>
         <button class="mini-btn mini-approve" onclick="approvePending('${p.id}')">অনুমোদন</button>
         <button class="mini-btn mini-reject" onclick="rejectPending('${p.id}')">বাতিল</button>
       </div>
@@ -671,6 +713,7 @@ function renderAdminPlayerList() {
       <div class="pending-thumb">${photoTag(p.photo)}</div>
       <div class="pending-info"><b>${escapeHTML(p.name)}</b><br>${escapeHTML(p.club || '')} • ${escapeHTML(posLabel[p.pos] || p.pos || '-')}<br>রেটিং: ${escapeHTML(p.rating)}</div>
       <div class="pending-actions">
+        <button class="mini-btn admin-edit" onclick="adminDownloadPlayerForm('${p.id}')">PDF</button>
         <button class="mini-btn admin-edit" onclick="editPlayer('${p.id}')">এডিট</button>
         <button class="mini-btn mini-reject" onclick="deletePlayer('${p.id}')">ডিলিট</button>
       </div>
@@ -1112,7 +1155,7 @@ onSnapshot(doc(db, 'meta', 'settings'), snap => {
 // Expose functions used via inline onclick= attributes in the HTML
 Object.assign(window, {
   toggleSidebar, showView, filterPlayers, openModal, closeModal, closeModalBg, showSocial, toggleHireInfo,
-  previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, approvePending, rejectPending,
+  previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, adminDownloadPlayerForm, adminDownloadPendingForm, approvePending, rejectPending,
   adminLogin, adminLogout, adminTab, adminAddPlayer, editPlayer, cancelPlayerEdit, deletePlayer,
   adminUpdateMatch, adminSaveCommittee, editCommittee, cancelCommitteeEdit, deleteCommittee,
   adminSaveCoach, editCoach, cancelCoachEdit, deleteCoach,
@@ -1124,7 +1167,7 @@ Object.assign(window, {
 // Expose the handlers explicitly so those buttons can call them.
 Object.assign(window, {
   showView, toggleSidebar, closeModal, closeModalBg, showSocial,
-  filterPlayers, previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton,
+  filterPlayers, previewPhoto, submitRegistration, downloadFilledForm, updateFormDownloadButton, adminDownloadPlayerForm, adminDownloadPendingForm,
   approvePending, rejectPending, adminLogin, adminLogout, adminTab,
   fillMatchForm, editPlayer, cancelPlayerEdit, deletePlayer, adminAddPlayer,
   adminUpdateMatch, renderAdminPlayerList,
