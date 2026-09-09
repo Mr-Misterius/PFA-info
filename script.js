@@ -454,12 +454,12 @@ async function generateFilledFormPdf(data, photoData, filenameName = 'player') {
   const fontSmall = '27px "Hind Siliguri", "Noto Sans Bengali", sans-serif';
 
   // Page 1 — text sits just ABOVE each dotted line.
-  // All field start positions are shifted 15% to the RIGHT from the previous alignment.
+  // All field start positions are shifted 50% to the RIGHT from the base field start position.
   // The available width is reduced by the same amount so text remains inside the field.
   ctx.drawImage(bg1, 0, 0, W, H);
 
   const place = (text, x, y, maxWidth, f) => {
-    const shift = maxWidth * 0.15;
+    const shift = maxWidth * 0.50;
     drawFittedText(ctx, text, x + shift, y, Math.max(40, maxWidth - shift), f);
   };
 
