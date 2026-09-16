@@ -511,19 +511,19 @@ async function makeFilledFormPDF(data, filename='PFA-filled-form.pdf'){
   let photoHtml='';
   if(data.photo){ photoHtml=`<img src="${esc(data.photo)}" style="position:absolute;left:1133px;top:335px;width:224px;height:306px;object-fit:cover;">`; }
   const p1=`${photoHtml}
-    ${t(205,700,1100,data.name)}
-    ${t(247,787,1100,data.father)}
-    ${t(247,875,1100,data.mother)}
-    ${t(403,970,440,data.village)}${t(1018,970,360,data.post)}
-    ${t(354,1057,520,data.upazila)}${t(1011,1057,360,data.district)}
-    ${t(403,1145,440,data.pVillage)}${t(1018,1145,360,data.pPost)}
-    ${t(354,1232,520,data.pUpazila)}${t(1011,1232,360,data.pDistrict)}
-    ${t(247,1320,520,fmtDate(data.dob))}${t(856,1320,480,data.occupation)}
-    ${t(354,1407,980,data.school)}
-    ${t(219,1494,500,data.className)}${t(863,1494,470,data.religion)}
-    ${t(488,1582,1000,posLabel[data.pos]||data.pos)}
-    ${t(290,1668,410,data.nationality)}${t(841,1668,530,data.phone)}
-    ${t(290,1756,410,data.height)}${t(919,1756,400,data.blood)}`;
+    ${t(280,675,1000,data.name,30)}
+    ${t(320,775,1050,data.father,28)}
+    ${t(320,860,1050,data.mother,28)}
+    ${t(370,950,420,data.village,27)}${t(1020,950,360,data.post,27)}
+    ${t(370,1040,450,data.upazila,27)}${t(1020,1040,360,data.district,27)}
+    ${t(370,1130,420,data.pVillage,27)}${t(1020,1130,360,data.pPost,27)}
+    ${t(370,1220,450,data.pUpazila,27)}${t(1020,1220,360,data.pDistrict,27)}
+    ${t(280,1310,500,fmtDate(data.dob),27)}${t(900,1310,480,data.occupation,27)}
+    ${t(370,1400,950,data.school,27)}
+    ${t(260,1485,480,data.className,27)}${t(900,1485,450,data.religion,27)}
+    ${t(520,1575,920,posLabel[data.pos]||data.pos,28)}
+    ${t(330,1660,360,data.nationality,27)}${t(880,1660,490,data.phone,27)}
+    ${t(330,1750,360,data.height,27)}${t(950,1750,380,data.blood,27)}`;
   const d1=makePage(page1,p1);
   const d2=makePage(page2,'');
   if (!window.html2canvas) throw new Error('PDF image library load হয়নি। ইন্টারনেট connection check করুন।');
